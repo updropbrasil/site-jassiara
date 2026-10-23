@@ -56,6 +56,12 @@ body:has(.tema-claro) { background: #F0E8DD; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+/* celular: a página nunca rola para o lado (nada vaza da largura da tela).
+   clip (e não hidden) para não quebrar o cabeçalho fixo (position: sticky). */
+html, body { max-width: 100%; overflow-x: hidden; overscroll-behavior-x: none; }
+@supports (overflow: clip) { html, body { overflow-x: clip; } }
+/* faixas que deslizam para o lado (fotos, botões): o arrasto fica só nelas, sem empurrar a página */
+[style*="overflow-x: auto"], .no-scrollbar { overscroll-behavior-x: contain; }
 body {
   background: var(--bg);
   color: var(--cream);

@@ -93,7 +93,7 @@ export default function PreSiteClient({ cfg, botoes }) {
 
       <style jsx global>{`
         body { background: #F0E8DD; }
-        .ps { position: relative; min-height: 100svh; color: #3E4130; background: #F0E8DD; overflow-x: hidden; }
+        .ps { position: relative; min-height: 100svh; color: #3E4130; background: #F0E8DD; overflow-x: clip; }
         .ps-marcadagua { position: absolute; top: -4vh; right: -18vw; width: min(95vw, 620px); opacity: .09; pointer-events: none; }
         .ps-foto { position: relative; height: 56svh; min-height: 340px; background-size: cover; background-position: center 20%; }
         .ps-foto::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(240,232,221,0) 45%, rgba(240,232,221,.75) 80%, #F0E8DD 100%); }
