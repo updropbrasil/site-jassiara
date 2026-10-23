@@ -15,7 +15,7 @@ export default async function AutomacoesPage() {
   const [{ data: regras }, { data: eventos }, { data: cfgRows }, { data: imoveis }] = await Promise.all([
     supabase.from('automacoes').select('*').order('ordem', { ascending: true }).order('created_at', { ascending: true }),
     supabase.from('automacao_eventos').select('*').order('criado_em', { ascending: false }).limit(80),
-    supabase.from('site_config').select('key, value').or('key.like.auto_%,key.eq.secretaria_whatsapp,key.eq.secretaria_instagram,key.eq.presite_whatsapp,key.eq.site_whatsapp'),
+    supabase.from('site_config').select('key, value').or('key.like.auto_%,key.eq.secretaria_whatsapp,key.eq.secretaria_instagram,key.eq.presite_whatsapp,key.eq.site_whatsapp,key.eq.instagram_app_id,key.eq.instagram_usuario'),
     supabase.from('imoveis').select('codigo, titulo, slug, bairro, finalidade').eq('status', 'ativo').order('created_at', { ascending: false }).limit(300),
   ]);
   const cfg = {};

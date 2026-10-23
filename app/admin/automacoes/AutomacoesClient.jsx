@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '../../../lib/supabase-browser';
 import TourGuiado, { useTourPrimeiraVez } from '../TourGuiado';
@@ -38,7 +38,7 @@ const TOUR_LISTA = [
   { alvo: '[data-tour="geral"]', titulo: 'Chave geral', texto: 'Liga ou pausa todas as automações de uma vez. Pausado, nada dispara — nem os gatilhos ligados.' },
   { alvo: '[data-tour="regra"]', titulo: 'Como cada canal funciona', texto: 'WhatsApp: a secretária IA atende, tira dúvidas, manda os imóveis e te chama quando o cliente quer visitar ou fechar.\n\nInstagram: só responde quem usar a palavra de um gatilho (ou a secretária, se você ligar).\n\nE a regra de ouro: se você mandar qualquer mensagem numa conversa, o robô PARA na hora naquela conversa. Você entrou, a conversa é sua.' },
   { alvo: '[data-tour="secretaria"]', titulo: 'Secretária IA', texto: 'Liga ou desliga a secretária em cada canal. Ela já conhece seus serviços e os imóveis do site. Quem ajusta o que ela sabe é o suporte.' },
-  { alvo: '[data-tour="canais"]', titulo: 'Seus canais', texto: 'Mostra se o Instagram e o WhatsApp estão conectados. Só funciona o que estiver conectado.' },
+  { alvo: '[data-tour="canais"]', titulo: 'Seus canais', texto: 'Mostra se o Instagram e o WhatsApp estão conectados. Só funciona o que estiver conectado.\n\nPara ligar o Instagram, toque em “Conectar Instagram”, entre com a sua conta e autorize. Pronto.' },
   { alvo: '[data-tour="criar"]', titulo: 'Criar um gatilho', texto: 'Um gatilho é: QUANDO a pessoa fizer isso → ACONTECE aquilo.\n\nExemplo: quando comentar “QUERO” num post → responde o comentário e manda o link no direct.' },
   { alvo: '[data-tour="cartao"]', titulo: 'Cada gatilho é um cartão', texto: 'Em cima: onde funciona e a frase “Quando…”. No meio: o que ele faz. A chavinha liga e desliga só este gatilho. Embaixo: quantas vezes já disparou, editar, duplicar e excluir.' },
   { alvo: '[data-tour="aba-atividade"]', titulo: 'Atividade', texto: 'Tudo o que aconteceu: quem foi, o que escreveu e o que recebeu.\n\nQuando a secretária pedir você numa conversa, aparece aqui. E o botão “Assumir conversa” tira o robô daquela conversa.' },
@@ -162,6 +162,28 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
   const [tourLista, setTourLista, fecharTourLista] = useTourPrimeiraVez('tour_automacoes_v1');
   const [tourEd, setTourEd, fecharTourEd] = useTourPrimeiraVez('tour_automacoes_editor_v1');
   const secWa = (cfg.secretaria_whatsapp || 'sim') === 'sim';
+  const igApp = String(cfg.instagram_app_id || '').trim();
+  // volta do login do Instagram (n8n redireciona para cá com ?instagram=conectado|cancelado)
+  useEffect(() => {
+    try {
+      const v = new URLSearchParams(window.location.search).get('instagram');
+      if (v === 'conectado') { setMsg('Instagram conectado ✓'); setCfg(c => ({ ...c, auto_instagram_status: 'conectado' })); }
+      else if (v === 'cancelado') setMsg('A conexão com o Instagram foi cancelada.');
+      if (v) window.history.replaceState(null, '', window.location.pathname);
+    } catch (e) {}
+  }, []);
+  function conectarInstagram() {
+    if (!igApp) return;
+    const u = new URL('https://www.instagram.com/oauth/authorize');
+    u.searchParams.set('enable_fb_login', '0');
+    u.searchParams.set('force_authentication', '1');
+    u.searchParams.set('client_id', igApp);
+    u.searchParams.set('redirect_uri', 'https://n8n.updropbrasil.com.br/webhook/instagram-oauth');
+    u.searchParams.set('response_type', 'code');
+    u.searchParams.set('scope', 'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments');
+    u.searchParams.set('state', 'jassiara-' + Date.now().toString(36));
+    window.location.href = u.toString();
+  }
   const secIg = cfg.secretaria_instagram === 'sim';
 
   const ligadas = cfg.auto_ligadas === 'sim';
@@ -454,9 +476,14 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
           <div data-tour="canais" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {[['Instagram', Instagram, sIg], ['WhatsApp', MessageCircle, sWa]].map(([n, I, s]) => (
               <span key={n} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 999, border: '1px solid var(--line)', fontSize: 12.5, color: 'var(--sand)' }}>
-                <I size={14} /> {n}: <strong style={{ color: s.c }}>{s.t}</strong>
+                <I size={14} /> {n}: <strong style={{ color: s.c }}>{s.t}</strong>{n === 'Instagram' && cfg.instagram_usuario && cfg.auto_instagram_status === 'conectado' ? <span>· @{cfg.instagram_usuario}</span> : null}
               </span>
             ))}
+            {cfg.auto_instagram_status !== 'conectado' && (
+              igApp
+                ? <button onClick={conectarInstagram} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 999, border: 0, background: 'linear-gradient(135deg,#F58529,#DD2A7B 55%,#8134AF)', color: '#fff', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}><Instagram size={14} /> Conectar Instagram</button>
+                : <span style={{ fontSize: 12, color: 'var(--muted)', alignSelf: 'center' }}>Conexão do Instagram: aguardando o suporte liberar.</span>
+            )}
           </div>
           <div data-tour="secretaria" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 14, borderRadius: 12, border: '1px solid rgba(168,192,143,.25)', background: 'rgba(168,192,143,.06)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Bot size={18} color="var(--green)" /><strong style={{ fontSize: 14.5 }}>Secretária IA</strong></div>
