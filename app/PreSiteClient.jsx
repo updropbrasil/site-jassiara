@@ -123,8 +123,8 @@ export default function PreSiteClient({ cfg, botoes }) {
         .ps-redes a { width: 44px; height: 44px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: var(--ps-cor); border: 1px solid #CFC6B5; background: #F8F3EB; }
         .ps-legal { font-size: 11.5px; color: #8E8A76; letter-spacing: .04em; }
         /* com retrato: ela à direita, logo e frase à esquerda por cima do creme */
-        .com-retrato .ps-topo { position: relative; display: flex; flex-direction: column; justify-content: flex-end; min-height: min(118vw, 560px); padding: 18px 0 18px; text-align: left; }
-        .ps-retrato { position: absolute; right: -10px; top: 10px; height: calc(100% - 4px); max-width: 74%; object-fit: contain; object-position: right bottom;
+        .com-retrato .ps-topo { position: relative; display: flex; flex-direction: column; justify-content: flex-end; min-height: min(100vw, 470px); padding: 8px 0 7vw; text-align: left; }
+        .ps-retrato { position: absolute; right: -10px; top: 10px; height: calc(100% - 10px); max-width: 74%; object-fit: contain; object-position: right top;
           -webkit-mask-image: linear-gradient(180deg, #000 62%, transparent 99%); mask-image: linear-gradient(180deg, #000 62%, transparent 99%); }
         .com-retrato .ps-marca { position: relative; z-index: 1; max-width: 58%; }
         .com-retrato .ps-logo { width: 100%; margin: 0; filter: drop-shadow(0 2px 10px rgba(240,232,221,.9)); }
@@ -132,6 +132,7 @@ export default function PreSiteClient({ cfg, botoes }) {
         .com-retrato .ps-marcadagua { right: auto; left: -28vw; opacity: .07; }
         @media (min-width: 900px) {
           .com-retrato .ps-topo { min-height: 520px; justify-content: center; padding: 30px 0; }
+          .ps-retrato { object-position: right bottom; }
           .com-retrato .ps-marca { max-width: 50%; }
           .com-retrato .ps-logo { width: 420px; max-width: 100%; }
           .com-retrato .ps-sub { max-width: 380px; font-size: 16px; }
