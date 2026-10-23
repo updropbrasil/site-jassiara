@@ -34,7 +34,7 @@ const cartao = { background: 'var(--bg-2)', border: '1px solid var(--line)', bor
 
 export default function PaginaInicialClient({ cfgInicial, botoesIniciais }) {
   const supabase = createClient();
-  const [cfg, setCfg] = useState(() => ({ presite_foto_url: '', presite_retrato_url: '', presite_logo_url: '', presite_cor_primaria: '#5F6348', presite_cor_secundaria: '#B18A69', ...cfgInicial }));
+  const [cfg, setCfg] = useState(() => ({ presite_foto_url: '', presite_retrato_url: '', presite_imoveis_foto: '/brand/retrato-sentada.webp', presite_logo_url: '', presite_cor_primaria: '#5F6348', presite_cor_secundaria: '#B18A69', ...cfgInicial }));
   const [botoes, setBotoes] = useState(botoesIniciais);
   const [aberto, setAberto] = useState(null);
   const [msg, setMsg] = useState('');
@@ -91,7 +91,7 @@ export default function PaginaInicialClient({ cfgInicial, botoesIniciais }) {
       if (b.tipo === 'link' && !/^https?:\/\//.test(b.destino || '')) { setMsg(`O botão "${b.rotulo}" precisa de um link começando com https://`); return; }
     }
     setSalvando(true);
-    const linhasCfg = ['presite_titulo', 'presite_nome', 'presite_subtitulo', 'presite_whatsapp', 'presite_instagram', 'presite_creci', 'presite_foto_url', 'presite_retrato_url', 'presite_logo_url', 'presite_cor_primaria', 'presite_cor_secundaria']
+    const linhasCfg = ['presite_titulo', 'presite_nome', 'presite_subtitulo', 'presite_whatsapp', 'presite_instagram', 'presite_creci', 'presite_foto_url', 'presite_retrato_url', 'presite_imoveis_foto', 'presite_logo_url', 'presite_cor_primaria', 'presite_cor_secundaria']
       .map(k => ({ key: k, value: k === 'presite_whatsapp' ? w : String(cfg[k] || '').trim() }));
     const linhasBotoes = botoes.map((b, k) => ({
       id: b.id, ordem: k + 1, rotulo: b.rotulo.trim(), subtitulo: (b.subtitulo || '').trim() || null, icone: (b.icone || '').trim() || null,
@@ -118,10 +118,10 @@ export default function PaginaInicialClient({ cfgInicial, botoesIniciais }) {
         <section style={cartao}>
           <div style={{ fontSize: 12, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>Sua marca</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-            {[['presite_retrato_url', 'Sua foto (sem fundo)'], ['presite_logo_url', 'Logo']].map(([k, l]) => (
+            {[['presite_retrato_url', 'Sua foto (sem fundo)'], ['presite_imoveis_foto', 'Foto do site de imóveis (sem fundo)'], ['presite_logo_url', 'Logo']].map(([k, l]) => (
               <label key={k} style={{ display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer' }}>
                 <span style={rotuloSt}>{l}</span>
-                <div style={{ aspectRatio: k === 'presite_retrato_url' ? '3/4' : '1/1', borderRadius: 12, border: '1px dashed rgba(240,232,221,.25)', background: cfg[k] ? `center/contain no-repeat url(${cfg[k]}), #F0E8DD` : '#1F2218', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, color: 'var(--muted)', textAlign: 'center', padding: 8 }}>
+                <div style={{ aspectRatio: k === 'presite_logo_url' ? '1/1' : '3/4', borderRadius: 12, border: '1px dashed rgba(240,232,221,.25)', background: cfg[k] ? `center/contain no-repeat url(${cfg[k]}), #F0E8DD` : '#1F2218', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, color: 'var(--muted)', textAlign: 'center', padding: 8 }}>
                   {enviando === k ? 'Enviando…' : cfg[k] ? '' : 'Toque para escolher'}
                 </div>
                 <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => enviarImagem(k, e.target.files?.[0])} />

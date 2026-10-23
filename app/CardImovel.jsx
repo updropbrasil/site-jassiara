@@ -66,7 +66,7 @@ export default function CardImovel({ im, compacto = false, autoVideo = true, umP
           {seloImovel(im).texto}
         </span>
         {(vid || nativo) && (
-          <span style={{ position: 'absolute', bottom: compacto ? 8 : 12, left: compacto ? 8 : 12, display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(33,36,25,.72)', color: 'var(--cream)', fontSize: compacto ? 10 : 11, padding: compacto ? '4px 7px' : '5px 9px', borderRadius: 6 }}>▶ {compacto ? 'Tour' : 'Tour em vídeo'}</span>
+          <span style={{ position: 'absolute', bottom: compacto ? 8 : 12, left: compacto ? 8 : 12, display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(33,36,25,.72)', color: '#F3EDE3', fontSize: compacto ? 10 : 11, padding: compacto ? '4px 7px' : '5px 9px', borderRadius: 6 }}>▶ {compacto ? 'Tour' : 'Tour em vídeo'}</span>
         )}
       </div>
       <div style={{ padding: compacto ? '10px 11px 12px' : '16px 18px 18px' }}>

@@ -93,10 +93,10 @@ export default function DetailClient({ im, precoFmt, parecidos = [], whats }) {
   ].filter(([, v]) => v);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="tema-claro" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <header className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid var(--line)' }}>
         <Link href="/imoveis" style={{ display: 'flex', alignItems: 'center' }} aria-label="Imóveis">
-          <img src="/brand/logo-creme.png" alt="Jassiara Vasconcelos" style={{ height: 34, width: 'auto'  }} />
+          <img src="/brand/logo-verde.png" alt="Jassiara Vasconcelos" style={{ height: 34, width: 'auto'  }} />
         </Link>
         <a href={wa} target="_blank" rel="noopener" onClick={abrirForm} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--wa)', color: 'var(--wa-texto)', padding: '10px 16px', borderRadius: 8, fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap' }}><IconeWhats size={16} />WhatsApp</a>
       </header>
@@ -107,7 +107,7 @@ export default function DetailClient({ im, precoFmt, parecidos = [], whats }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 48, alignItems: 'flex-start' }}>
           {/* MÍDIA */}
           <div style={{ width: 360, maxWidth: '100%', flex: '1 1 320px' }}>
-          <div style={{ width: '100%', position: 'relative', aspectRatio: '9/16', maxHeight: isMobile ? 'min(640px, 68vh)' : 640, borderRadius: 18, overflow: 'hidden', background: 'linear-gradient(150deg,#6B5A44,#463928)', boxShadow: '0 20px 60px rgba(0,0,0,.4)' }}>
+          <div style={{ width: '100%', position: 'relative', aspectRatio: '9/16', maxHeight: isMobile ? 'min(640px, 68vh)' : 640, borderRadius: 18, overflow: 'hidden', background: 'linear-gradient(150deg,#6B5A44,#463928)', boxShadow: '0 20px 50px rgba(70,62,44,.22)' }}>
             <div ref={trackRef} onScroll={onTrackScroll} className="no-scrollbar"
               style={{ position: 'absolute', inset: 0, display: 'flex', overflowX: 'auto', overflowY: 'hidden', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
               {slides.map((s, k) => (
@@ -172,7 +172,7 @@ export default function DetailClient({ im, precoFmt, parecidos = [], whats }) {
           {/* INFO */}
           <div style={{ flex: '2 1 380px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 22 }}>
             <div>
-              <span style={{ display: 'inline-flex', background: 'rgba(33,36,25,.6)', border: '1px solid var(--line)', color: seloImovel(im).cor, fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', padding: '6px 12px', borderRadius: 6, marginBottom: 14 }}>{seloImovel(im).texto}</span>
+              <span style={{ display: 'inline-flex', background: '#3A3D2E', border: '1px solid #3A3D2E', color: seloImovel(im).cor, fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', padding: '6px 12px', borderRadius: 6, marginBottom: 14 }}>{seloImovel(im).texto}</span>
               {im.codigo && <span style={{ display: 'inline-flex', marginLeft: 8, background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--taupe)', fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', padding: '6px 12px', borderRadius: 6, marginBottom: 14 }}>CÓD. {im.codigo}</span>}
               <h1 style={{ fontSize: 32, lineHeight: 1.15, color: 'var(--cream-2)', margin: 0 }}>{im.titulo}</h1>
               <div style={{ fontSize: 15, color: 'var(--taupe)', marginTop: 8 }}>{im.bairro} · João Pessoa</div>
@@ -211,7 +211,7 @@ export default function DetailClient({ im, precoFmt, parecidos = [], whats }) {
               {parecidos.map(p => <CardImovel key={p.id} im={p} compacto={isMobile} autoVideo umPorVez={isMobile} origin={origin} />)}
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: isMobile ? 20 : 28 }}>
-              <Link href={`/imoveis?f=${secaoLista}#lista`} style={{ border: '1px solid rgba(201,162,126,.5)', color: 'var(--accent)', padding: '12px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700 }}>
+              <Link href={`/imoveis?f=${secaoLista}#lista`} style={{ border: '1px solid color-mix(in srgb, var(--accent) 50%, transparent)', color: 'var(--accent)', padding: '12px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700 }}>
                 {ehAluguel ? 'Ver todos os imóveis para alugar' : 'Ver todos os imóveis à venda'}
               </Link>
             </div>
@@ -222,7 +222,7 @@ export default function DetailClient({ im, precoFmt, parecidos = [], whats }) {
 
       {/* BARRA FIXA NO CELULAR: preço + WhatsApp sempre à mão */}
       {isMobile && !full && (
-        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50, background: 'rgba(33,36,25,.96)', backdropFilter: 'blur(10px)', borderTop: '1px solid rgba(240,232,221,.12)', padding: '10px 16px calc(10px + env(safe-area-inset-bottom))', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50, background: 'color-mix(in srgb, var(--bg-2) 96%, transparent)', backdropFilter: 'blur(10px)', borderTop: '1px solid var(--line)', boxShadow: '0 -8px 24px rgba(70,62,44,.10)', padding: '10px 16px calc(10px + env(safe-area-inset-bottom))', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ minWidth: 0, flex: '1 1 auto' }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{precoFmt}<span style={{ fontSize: 12, fontWeight: 400, color: 'var(--taupe)' }}>{sufixoPreco(im)}</span></div>
             <div style={{ fontSize: 11.5, color: 'var(--taupe)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{im.bairro}{im.codigo ? ` · ${im.codigo}` : ''}</div>
@@ -305,7 +305,7 @@ function Descricao({ texto }) {
           <ul className="desc-itens" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '8px 18px' }}>
             {visiveis.map((t) => (
               <li key={t} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 14.5, color: 'var(--cream-2)', lineHeight: 1.4 }}>
-                <span aria-hidden="true" style={{ flex: '0 0 18px', height: 18, marginTop: 1, borderRadius: 999, background: 'rgba(201,162,126,.16)', color: 'var(--accent)', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 800 }}>✓</span>
+                <span aria-hidden="true" style={{ flex: '0 0 18px', height: 18, marginTop: 1, borderRadius: 999, background: 'color-mix(in srgb, var(--accent) 16%, transparent)', color: 'var(--accent)', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 800 }}>✓</span>
                 <span>{t}</span>
               </li>
             ))}
@@ -342,7 +342,7 @@ function Localizacao({ im }) {
         <iframe src={src} title={`Localização aproximada — ${im.bairro}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade"
           style={{ width: '100%', height: 230, border: 0, borderRadius: 10, marginTop: 4, background: 'var(--bg)' }} />
       ) : (
-        <button onClick={() => setMapa(true)} style={{ marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'rgba(201,162,126,.1)', color: 'var(--accent)', border: '1px solid rgba(201,162,126,.35)', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+        <button onClick={() => setMapa(true)} style={{ marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'color-mix(in srgb, var(--accent) 10%, transparent)', color: 'var(--accent)', border: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           🗺️ Ver a região no mapa
         </button>
       )}

@@ -13,6 +13,45 @@
   --accent-hover: #D9BC9C;
   --green: #B9C79A;
   --line: rgba(240,232,221,.10);
+  --on-accent: #22251A;
+  --caramelo: #C9A27E;
+}
+
+/* Site público (imóveis e página do imóvel): tema claro com a paleta da Jassiara.
+   As mesmas variáveis, com outros valores: --cream = texto principal, --bg = fundo creme. O painel continua escuro. */
+.tema-claro {
+  --bg: #F0E8DD;
+  --bg-2: #FAF6F0;
+  --bg-3: #E4D9C7;
+  --cream: #34372A;
+  --cream-2: #262820;
+  --sand: #4E5140;
+  --taupe: #6E6A59;
+  --muted: #8A846F;
+  --accent: #5F6348;
+  --accent-hover: #4B4F38;
+  --on-accent: #FAF6F0;
+  --caramelo: #9C7656;
+  --green: #5F6348;
+  --line: rgba(52,55,42,.13);
+  color: var(--cream);
+}
+.tema-claro a:hover { color: var(--accent-hover); }
+body:has(.tema-claro) { background: #F0E8DD; }
+
+/* topo do site de imóveis com a foto dela (sem fundo) à direita */
+.hero-texto { max-width: 620px; }
+.hero-busca { max-width: 940px; }
+.hero-foto { position: absolute; z-index: 1; bottom: 0; right: max(32px, calc((100% - 1560px) / 2 + 40px)); height: min(94%, 720px); width: auto; pointer-events: none; filter: drop-shadow(0 24px 40px rgba(70,62,44,.18)); }
+.hero-marca { position: absolute; z-index: 0; top: 6%; right: max(-40px, calc((100% - 1560px) / 2 - 40px)); width: 560px; opacity: .06; pointer-events: none; }
+@media (min-width: 721px) {
+  .hero-im.tem-foto .hero-texto, .hero-im.tem-foto .hero-busca { max-width: min(940px, calc(100% - 400px)); }
+  .hero-im.tem-foto .hero-texto { max-width: min(620px, calc(100% - 400px)); }
+}
+@media (max-width: 720px) {
+  .hero-foto { top: 26px; bottom: auto; right: -14px; height: 270px; }
+  .hero-marca { width: 300px; top: 30px; right: -70px; }
+  .hero-im.tem-foto .hero-texto { max-width: 58%; }
 }
 
 * { box-sizing: border-box; }
