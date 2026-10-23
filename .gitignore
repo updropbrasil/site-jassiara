@@ -1,2 +1,5 @@
 node_modules
 .next
+
+# variáveis locais nunca vão para o repositório (o endereço do banco já está em lib/config.js)
+.env*
