@@ -129,7 +129,7 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
       <header style={{ position: 'sticky', top: 0, zIndex: 40, background: 'rgba(31,24,18,.92)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--line)' }}>
         <div className="container cab-home" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/logo-jason-dias.jpg" alt="Jason Dias Imóveis" style={{ height: isMobile ? 30 : 36, width: 'auto', mixBlendMode: 'screen' }} />
+            <img src="/brand/logo-creme.png" alt="Jassiara Vasconcelos" style={{ height: isMobile ? 30 : 36, width: 'auto'  }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 28 }}>
             {/* escondido no celular pelo CSS (classe so-pc), para já abrir certo antes do JavaScript carregar */}
@@ -342,7 +342,7 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
 
       <footer className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: isMobile ? '24px 20px 32px' : '24px 56px', color: 'var(--muted)', fontSize: 12.5 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src="/logo-jason-dias.jpg" alt="Jason Dias Imóveis" style={{ height: 24, width: 'auto', mixBlendMode: 'screen' }} />
+          <img src="/brand/logo-creme.png" alt="Jassiara Vasconcelos" style={{ height: 24, width: 'auto'  }} />
           <span style={{ fontSize: 11, color: 'var(--muted)', letterSpacing: '.06em' }}>CRECI 8085</span>
         </span>
         <span>João Pessoa · PB — Aluguel e venda de médio-alto padrão</span>

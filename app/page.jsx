@@ -1,16 +1,16 @@
 import { createPublicClient } from '../lib/supabase-public';
 import PreSiteClient from './PreSiteClient';
 
-// Página inicial (pré-site Facilite): um botão por serviço. Tudo vem do banco
+// Página inicial (pré-site Jassiara Vasconcelos): um botão por serviço. Tudo vem do banco
 // (tabela presite_botoes e chaves presite_* em site_config) e é editado em Admin → Página inicial.
 export const revalidate = 30;
 
 export async function generateMetadata() {
   const cfg = await getConfig();
-  const titulo = [cfg.presite_marca || 'Facilite', cfg.presite_nome].filter(Boolean).join(' · ');
+  const titulo = `${cfg.presite_titulo || 'Jassiara Vasconcelos'} · Facilitadora de negócios`;
   return {
     title: { absolute: titulo },
-    description: cfg.presite_subtitulo || 'Tudo o que você precisa em João Pessoa, num só lugar.',
+    description: cfg.presite_subtitulo || 'Conectando você às melhores oportunidades em João Pessoa.',
     openGraph: { title: titulo, description: cfg.presite_subtitulo || '', images: cfg.presite_foto_url ? [cfg.presite_foto_url] : [] },
   };
 }

@@ -25,15 +25,15 @@ const SITE = SITE_URL;
 export const metadata = {
   metadataBase: new URL(SITE),
   title: {
-    default: 'Imóveis para alugar e comprar em João Pessoa com tour em vídeo | Jason Dias Imóveis',
-    template: '%s | Jason Dias Imóveis'
+    default: 'Jassiara Vasconcelos · Facilitadora de negócios em João Pessoa',
+    template: '%s | Jassiara Vasconcelos'
   },
   description:
-    'Aluguel e venda de imóveis de médio-alto padrão em João Pessoa. Cada imóvel com tour guiado em vídeo — conheça por dentro antes de visitar.',
+    'Imóveis, temporada, serviços e oportunidades em João Pessoa com Jassiara Vasconcelos, facilitadora de negócios.',
   openGraph: {
     type: 'website',
     locale: 'pt_BR',
-    siteName: 'Jason Dias Imóveis',
+    siteName: 'Jassiara Vasconcelos',
     url: SITE
   },
   robots: { index: true, follow: true }

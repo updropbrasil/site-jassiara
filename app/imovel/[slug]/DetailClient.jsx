@@ -94,7 +94,7 @@ export default function DetailClient({ im, precoFmt, parecidos = [], whats }) {
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <header className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid var(--line)' }}>
         <Link href="/imoveis" style={{ display: 'flex', alignItems: 'center' }} aria-label="Imóveis">
-          <img src="/logo-jason-dias.jpg" alt="Jason Dias Imóveis" style={{ height: 34, width: 'auto', mixBlendMode: 'screen' }} />
+          <img src="/brand/logo-creme.png" alt="Jassiara Vasconcelos" style={{ height: 34, width: 'auto'  }} />
         </Link>
         <a href={wa} target="_blank" rel="noopener" onClick={abrirForm} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--wa)', color: 'var(--wa-texto)', padding: '10px 16px', borderRadius: 8, fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap' }}><IconeWhats size={16} />WhatsApp</a>
       </header>

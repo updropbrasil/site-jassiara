@@ -32,7 +32,7 @@ export async function GET() {
     telefone: c.zap_telefone || `(${tel.slice(0, 2)}) ${tel.slice(2)}`,
     contato: c.zap_contato || 'Jason Dias',
     site: SITE_URL,
-    logo: `${SITE_URL}/logo-jason-dias.jpg`,
+    logo: `${SITE_URL}/brand/logo-verde.png`,
   };
 
   const xml = buildZapFeed(imoveis || [], contato);

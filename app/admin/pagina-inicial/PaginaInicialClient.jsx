@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '../../../lib/supabase-browser';
+import { LISTA_ICONES, IconeServico } from '../../icones';
 
 // Editor da página inicial (pré-site), feito para o celular:
 // dados da marca (foto, logo, cor, WhatsApp, Instagram) e os botões (texto, ordem, destino, mensagem).
@@ -33,7 +34,7 @@ const cartao = { background: 'var(--bg-2)', border: '1px solid var(--line)', bor
 
 export default function PaginaInicialClient({ cfgInicial, botoesIniciais }) {
   const supabase = createClient();
-  const [cfg, setCfg] = useState(() => ({ presite_foto_url: '', presite_logo_url: '', presite_cor_primaria: '#D4A55A', ...cfgInicial }));
+  const [cfg, setCfg] = useState(() => ({ presite_foto_url: '', presite_logo_url: '', presite_cor_primaria: '#5F6348', presite_cor_secundaria: '#B18A69', ...cfgInicial }));
   const [botoes, setBotoes] = useState(botoesIniciais);
   const [aberto, setAberto] = useState(null);
   const [msg, setMsg] = useState('');
@@ -54,7 +55,7 @@ export default function PaginaInicialClient({ cfgInicial, botoesIniciais }) {
 
   function novoBotao() {
     const id = crypto.randomUUID();
-    setBotoes(bs => [...bs, { id, _novo: true, ordem: bs.length + 1, rotulo: 'Novo serviço', subtitulo: '', icone: '✦', tipo: 'whatsapp', destino: '', mensagem: 'Olá! Vim pelo seu site e quero saber sobre…', ativo: true }]);
+    setBotoes(bs => [...bs, { id, _novo: true, ordem: bs.length + 1, rotulo: 'Novo serviço', subtitulo: '', icone: 'brilho', tipo: 'whatsapp', destino: '', mensagem: 'Olá! Vim pelo seu site e quero saber sobre…', ativo: true }]);
     setAberto(id);
   }
 
@@ -90,7 +91,7 @@ export default function PaginaInicialClient({ cfgInicial, botoesIniciais }) {
       if (b.tipo === 'link' && !/^https?:\/\//.test(b.destino || '')) { setMsg(`O botão "${b.rotulo}" precisa de um link começando com https://`); return; }
     }
     setSalvando(true);
-    const linhasCfg = ['presite_titulo', 'presite_nome', 'presite_subtitulo', 'presite_whatsapp', 'presite_instagram', 'presite_creci', 'presite_foto_url', 'presite_logo_url', 'presite_cor_primaria']
+    const linhasCfg = ['presite_titulo', 'presite_nome', 'presite_subtitulo', 'presite_whatsapp', 'presite_instagram', 'presite_creci', 'presite_foto_url', 'presite_logo_url', 'presite_cor_primaria', 'presite_cor_secundaria']
       .map(k => ({ key: k, value: k === 'presite_whatsapp' ? w : String(cfg[k] || '').trim() }));
     const linhasBotoes = botoes.map((b, k) => ({
       id: b.id, ordem: k + 1, rotulo: b.rotulo.trim(), subtitulo: (b.subtitulo || '').trim() || null, icone: (b.icone || '').trim() || null,
@@ -138,10 +139,12 @@ export default function PaginaInicialClient({ cfgInicial, botoesIniciais }) {
                 {c.ajuda && <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>{c.ajuda}</span>}
               </label>
             ))}
-            <label style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <input type="color" value={/^#[0-9a-f]{6}$/i.test(cfg.presite_cor_primaria || '') ? cfg.presite_cor_primaria : '#D4A55A'} onChange={e => setC('presite_cor_primaria', e.target.value)} style={{ width: 52, height: 40, border: 0, background: 'none', padding: 0 }} />
-              <span style={rotuloSt}>Cor de destaque</span>
-            </label>
+            {[['presite_cor_primaria', 'Cor principal (ícones)', '#5F6348'], ['presite_cor_secundaria', 'Cor de detalhe (setas e linhas)', '#B18A69']].map(([k, l, padrao]) => (
+              <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <input type="color" value={/^#[0-9a-f]{6}$/i.test(cfg[k] || '') ? cfg[k] : padrao} onChange={e => setC(k, e.target.value)} style={{ width: 52, height: 40, border: 0, background: 'none', padding: 0 }} />
+                <span style={rotuloSt}>{l}</span>
+              </label>
+            ))}
           </div>
         </section>
 
@@ -159,7 +162,7 @@ export default function PaginaInicialClient({ cfgInicial, botoesIniciais }) {
                     <button onClick={() => mover(i, -1)} disabled={i === 0} aria-label="Subir" style={{ background: 'none', border: 0, color: 'var(--sand)', fontSize: 13, padding: '2px 6px', opacity: i === 0 ? 0.25 : 1 }}>▲</button>
                     <button onClick={() => mover(i, 1)} disabled={i === botoes.length - 1} aria-label="Descer" style={{ background: 'none', border: 0, color: 'var(--sand)', fontSize: 13, padding: '2px 6px', opacity: i === botoes.length - 1 ? 0.25 : 1 }}>▼</button>
                   </div>
-                  <span style={{ fontSize: 22, width: 30, textAlign: 'center' }}>{b.icone || '✦'}</span>
+                  <span style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#5F6348', color: '#F0E8DD', flex: 'none' }}><IconeServico nome={b.icone} size={18} /></span>
                   <button onClick={() => setAberto(abertoAqui ? null : b.id)} style={{ flex: 1, minWidth: 0, background: 'none', border: 0, color: 'var(--cream)', textAlign: 'left', padding: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 14.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.rotulo}</div>
                     <div style={{ fontSize: 12, color: 'var(--muted)' }}>{TIPOS.find(t => t.v === b.tipo)?.l}{typeof b.cliques === 'number' ? ` · ${b.cliques} cliques` : ''}</div>
@@ -168,15 +171,20 @@ export default function PaginaInicialClient({ cfgInicial, botoesIniciais }) {
                 </div>
                 {abertoAqui && (
                   <div style={{ borderTop: '1px solid var(--line)', padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr', gap: 10 }}>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <span style={rotuloSt}>Ícone</span>
-                        <input value={b.icone || ''} onChange={e => setB(b.id, 'icone', e.target.value)} style={{ ...caixa, textAlign: 'center', fontSize: 20, padding: '9px 6px' }} maxLength={4} />
-                      </label>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <span style={rotuloSt}>Nome do botão</span>
-                        <input value={b.rotulo} onChange={e => setB(b.id, 'rotulo', e.target.value)} style={caixa} />
-                      </label>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <span style={rotuloSt}>Nome do botão</span>
+                      <input value={b.rotulo} onChange={e => setB(b.id, 'rotulo', e.target.value)} style={caixa} />
+                    </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <span style={rotuloSt}>Ícone</span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {LISTA_ICONES.map(([nome, legenda]) => (
+                          <button key={nome} type="button" title={legenda} aria-label={legenda} onClick={() => setB(b.id, 'icone', nome)}
+                            style={{ width: 42, height: 42, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: b.icone === nome ? '2px solid var(--accent)' : '1px solid rgba(243,237,227,.15)', background: b.icone === nome ? 'rgba(232,168,124,.15)' : '#120B10', color: 'var(--cream)' }}>
+                            <IconeServico nome={nome} size={19} />
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <span style={rotuloSt}>Frase embaixo do nome</span>
