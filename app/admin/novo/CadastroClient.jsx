@@ -7,7 +7,7 @@ import { ytId, ytThumb, parsePreco, formatPreco, slugify, tituloSeo, MOBILIA_LAB
 import { qualidadeAnuncio, cepValido } from '../../../lib/zap-feed';
 import { toWideBlob } from '../../../lib/image';
 
-const CATEGORIAS = ['Apartamento', 'Casa', 'Cobertura', 'Flat / Studio', 'Comercial'];
+const CATEGORIAS = ['Apartamento', 'Casa', 'Cobertura', 'Flat / Studio', 'Terreno', 'Ponto comercial', 'Sala comercial', 'Loja', 'Galpão'];
 const BAIRROS = ['Cabo Branco', 'Manaíra', 'Tambaú', 'Bessa', 'Altiplano', 'Intermares'];
 const FEATURE_GRUPOS = [
   ['Lazer do condomínio', ['Piscina', 'Piscina infantil', 'Academia', 'Salão de festas', 'Salão de jogos', 'Churrasqueira', 'Espaço gourmet', 'Playground', 'Quadra poliesportiva', 'Quadra de tênis', 'Sauna', 'Spa', 'Cinema', 'Coworking', 'Espaço pet', 'Lavanderia', 'Mini mercado', 'Bicicletário', 'Vestiário']],
@@ -94,14 +94,16 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
     contato_interno: imovel.contato_interno || '',
     condominio_inclui: imovel.condominio_inclui || '', agua_tipo: imovel.agua_tipo || 'nao_informado', gas_tipo: imovel.gas_tipo || 'nao_informado',
     captacao: imovel.captacao || 'propria', parceiro_nome: imovel.parceiro_nome || '', parceiro_whatsapp: imovel.parceiro_whatsapp || '',
-    features: Array.isArray(imovel.features) ? imovel.features : []
+    features: Array.isArray(imovel.features) ? imovel.features : [],
+    estagio: imovel.estagio || 'pronto', previsao_entrega: imovel.previsao_entrega || '', compartilhar_parceria: !!imovel.compartilhar_parceria
   } : {
     finalidade: 'aluguel', categoria: 'Apartamento', titulo: '', bairro: '', endereco: '', referencia: '',
     mobilia: 'sem', quartos: 3, suites: 1, banheiros: 2, vagas: 2, area: '', andar: '', posicao: '', preco: '', condominio: '', iptu: '',
     condominio_tipo: 'valor', iptu_tipo: 'valor',
     video: '', videoUrl: '', videoMode: 'link', descricao: '', parceiro_id: '', parceiro_pct: '', codigo: '', cep: '',
     numero: '', complemento: '', ano: '', contato_interno: '', features: [],
-    condominio_inclui: '', agua_tipo: 'nao_informado', gas_tipo: 'nao_informado', captacao: 'propria', parceiro_nome: '', parceiro_whatsapp: ''
+    condominio_inclui: '', agua_tipo: 'nao_informado', gas_tipo: 'nao_informado', captacao: 'propria', parceiro_nome: '', parceiro_whatsapp: '',
+    estagio: 'pronto', previsao_entrega: '', compartilhar_parceria: false
   });
 
   const set = (patch) => setForm(f => ({ ...f, ...patch }));
@@ -111,11 +113,12 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
     on(); mq.addEventListener('change', on);
     return () => mq.removeEventListener('change', on);
   }, []);
-  const isAluguel = form.finalidade === 'aluguel';
+  const isAluguel = form.finalidade === 'aluguel' || form.finalidade === 'temporada';
+  const isTemporada = form.finalidade === 'temporada';
   const seoTitle = tituloSeo({ categoria: form.categoria, quartos: form.quartos, suites: form.suites, mobilia: form.mobilia, finalidade: form.finalidade, bairro: form.bairro });
   const vid = ytId(form.video);
   const codigoSugerido = useMemo(() => {
-    const pre = form.finalidade === 'venda' ? 'JDV' : 'JDA';
+    const pre = form.finalidade === 'venda' ? 'JSV' : 'JSA';
     return `${pre}-${Math.floor(1000 + Math.random() * 9000)}`;
   }, [form.finalidade]);
 
@@ -137,9 +140,9 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
   });
 
   function gerarDescricao() {
-    const isAlq = form.finalidade === 'aluguel';
+    const isAlq = form.finalidade === 'aluguel' || form.finalidade === 'temporada';
     const l = [];
-    l.push(`${form.categoria} ${isAlq ? 'para alugar' : 'à venda'} no ${form.bairro || 'bairro'}, em João Pessoa${form.referencia ? ` — ${form.referencia}` : ''}.`);
+    l.push(`${form.categoria} ${form.finalidade === 'temporada' ? 'para temporada' : isAlq ? 'para alugar' : form.estagio === 'planta' ? 'na planta, à venda,' : 'à venda'} no ${form.bairro || 'bairro'}, em João Pessoa${form.referencia ? ` — ${form.referencia}` : ''}.`);
     l.push('');
     if (Number(form.quartos)) l.push(`✅ ${form.quartos} quarto${form.quartos > 1 ? 's' : ''}${Number(form.suites) ? ` (${form.suites} suíte${form.suites > 1 ? 's' : ''})` : ''}`);
     if (Number(form.banheiros)) l.push(`✅ ${form.banheiros} banheiro${form.banheiros > 1 ? 's' : ''}`);
@@ -159,7 +162,7 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
       if (form.iptu_tipo === 'isento') extras.push('IPTU isento');
       else if (form.iptu_tipo === 'incluso') extras.push('IPTU incluso');
       else if (form.iptu_tipo === 'valor' && form.iptu) extras.push(`IPTU R$ ${maskThousands(form.iptu)}`);
-      l.push(`💰 Aluguel: R$ ${maskThousands(form.preco)}/mês${extras.length ? ` (${extras.join(' · ')})` : ''}`);
+      l.push(`💰 ${isTemporada ? 'Diária' : 'Aluguel'}: R$ ${maskThousands(form.preco)}${isTemporada ? '' : '/mês'}${extras.length ? ` (${extras.join(' · ')})` : ''}`);
       if ((form.condominio_inclui || '').trim()) l.push(`🏢 Condomínio inclui: ${form.condominio_inclui.trim()}`);
       const util = [];
       if (form.agua_tipo === 'incluso') util.push('água inclusa'); else if (form.agua_tipo === 'individual') util.push('água individual');
@@ -168,6 +171,7 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
       l.push('ℹ️ Valores de condomínio e IPTU são informativos e podem sofrer alterações.');
     } else {
       l.push(`💰 Valor: R$ ${maskThousands(form.preco)}`);
+      if (form.estagio === 'planta' && (form.previsao_entrega || '').trim()) l.push(`🏗️ Previsão de entrega: ${form.previsao_entrega.trim()}`);
     }
     l.push(`📍 ${form.bairro || ''}, João Pessoa – PB`);
     const cod = (form.codigo || '').trim().toUpperCase() || codigoSugerido;
@@ -239,6 +243,9 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
         captacao: form.captacao || 'propria',
         parceiro_nome: form.captacao === 'parceiro' ? ((form.parceiro_nome || '').trim() || null) : null,
         parceiro_whatsapp: form.captacao === 'parceiro' ? ((form.parceiro_whatsapp || '').replace(/\D/g, '') || null) : null,
+        estagio: form.finalidade === 'venda' ? (form.estagio || 'pronto') : null,
+        previsao_entrega: form.finalidade === 'venda' && form.estagio === 'planta' ? ((form.previsao_entrega || '').trim() || null) : null,
+        compartilhar_parceria: !!form.compartilhar_parceria,
         status: 'ativo'
       };
 
@@ -342,16 +349,16 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-3)', display: 'flex', justifyContent: 'center', gap: 40, padding: wide ? '0 24px' : 0 }}>
       <div style={{ width: '100%', maxWidth: 480, minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
-        <header style={{ position: 'sticky', top: 0, zIndex: 20, background: 'rgba(31,24,18,.95)', backdropFilter: 'blur(8px)', padding: '16px 20px 12px', borderBottom: '1px solid var(--line)' }}>
+        <header style={{ position: 'sticky', top: 0, zIndex: 20, background: 'rgba(33,36,25,.95)', backdropFilter: 'blur(8px)', padding: '16px 20px 12px', borderBottom: '1px solid var(--line)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <button onClick={() => step > 0 && step < 6 ? setStep(step - 1) : router.push('/admin')} style={{ width: 40, height: 40, borderRadius: 999, border: '1px solid rgba(243,237,227,.15)', background: 'transparent', color: 'var(--cream)', fontSize: 16 }}>‹</button>
+            <button onClick={() => step > 0 && step < 6 ? setStep(step - 1) : router.push('/admin')} style={{ width: 40, height: 40, borderRadius: 999, border: '1px solid rgba(240,232,221,.15)', background: 'transparent', color: 'var(--cream)', fontSize: 16 }}>‹</button>
             <div style={{ textAlign: 'center' }}>
               <div className="serif" style={{ fontSize: 16, color: 'var(--cream-2)' }}>{editando ? 'Editar imóvel' : 'Novo imóvel'}</div>
               <div style={{ fontSize: 11, color: 'var(--taupe)' }}>{step < 6 ? `Passo ${step + 1} de 6 · ${STEPS[step]}` : 'Concluído'}</div>
             </div>
-            <a href="/admin" title="Voltar à gestão" style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, border: '1px solid rgba(243,237,227,.15)', color: 'var(--sand)' }}>≡</a>
+            <a href="/admin" title="Voltar à gestão" style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, border: '1px solid rgba(240,232,221,.15)', color: 'var(--sand)' }}>≡</a>
           </div>
-          <div style={{ height: 4, background: 'rgba(243,237,227,.1)', borderRadius: 999, overflow: 'hidden' }}>
+          <div style={{ height: 4, background: 'rgba(240,232,221,.1)', borderRadius: 999, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${(Math.min(step, 6) / 6) * 100}%`, background: 'var(--accent)', borderRadius: 999, transition: 'width .3s' }} />
           </div>
         </header>
@@ -359,17 +366,30 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
         <div style={{ flex: 1, padding: '24px 20px 120px', display: 'flex', flexDirection: 'column', gap: 20 }}>
           {step === 0 && (
             <>
-              <h2 style={{ fontSize: 24, color: 'var(--cream-2)', margin: 0 }}>O imóvel é para alugar ou vender?</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                {[['aluguel', 'Alugar', 'Aluguel mensal'], ['venda', 'Vender', 'Venda direta']].map(([k, l, s]) => (
+              <h2 style={{ fontSize: 24, color: 'var(--cream-2)', margin: 0 }}>O imóvel é para temporada, locação ou venda?</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                {[['temporada', 'Temporada', 'Por diária'], ['aluguel', 'Locação', 'Aluguel mensal'], ['venda', 'Venda', 'Pronto ou na planta']].map(([k, l, s]) => (
                   <button key={k} onClick={() => set({ finalidade: k })} style={bigOpt(form.finalidade === k)}>
                     <div style={{ fontSize: 17, fontWeight: 700, color: form.finalidade === k ? 'var(--accent)' : 'var(--cream)' }}>{l}</div>
                     <div style={{ fontSize: 12, color: 'var(--taupe)', marginTop: 4 }}>{s}</div>
                   </button>
                 ))}
               </div>
+              {form.finalidade === 'venda' && (
+                <>
+                  <Label>O imóvel está</Label>
+                  <Chips opts={[['pronto', 'Pronto'], ['planta', 'Na planta']]} value={form.estagio || 'pronto'} onPick={v => set({ estagio: v })} />
+                  {form.estagio === 'planta' && (
+                    <input value={form.previsao_entrega} onChange={e => set({ previsao_entrega: e.target.value })} placeholder="Previsão de entrega (ex.: dez/2028)" style={inp} />
+                  )}
+                </>
+              )}
               <Label>Tipo de imóvel</Label>
               <Chips opts={CATEGORIAS.map(c => [c, c])} value={form.categoria} onPick={c => set({ categoria: c })} />
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: 14, borderRadius: 12, border: '1px solid rgba(240,232,221,.15)', fontSize: 14 }}>
+                <input type="checkbox" checked={!!form.compartilhar_parceria} onChange={e => set({ compartilhar_parceria: e.target.checked })} style={{ width: 20, height: 20, marginTop: 1 }} />
+                <span>Aparecer também no site da parceira <strong>Jason Dias Imóveis</strong><br /><span style={{ fontSize: 12, color: 'var(--taupe)' }}>Deixe desmarcado para o imóvel ficar só no seu site.</span></span>
+              </label>
               <Hint>Essa escolha já define os filtros em que o anúncio aparece no site.</Hint>
             </>
           )}
@@ -381,14 +401,14 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
                 <input value={form.bairro} onChange={e => set({ bairro: e.target.value })} placeholder="Digite o bairro… ex.: Cabo Branco" style={inp} />
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
                   {BAIRROS.map(b => (
-                    <button key={b} onClick={() => set({ bairro: b })} style={{ padding: '8px 14px', borderRadius: 999, fontSize: 13, fontWeight: form.bairro === b ? 700 : 400, border: `1px solid ${form.bairro === b ? 'var(--accent)' : 'rgba(243,237,227,.2)'}`, background: form.bairro === b ? 'rgba(232,168,124,.12)' : 'transparent', color: form.bairro === b ? 'var(--accent)' : 'var(--sand)' }}>{b}</button>
+                    <button key={b} onClick={() => set({ bairro: b })} style={{ padding: '8px 14px', borderRadius: 999, fontSize: 13, fontWeight: form.bairro === b ? 700 : 400, border: `1px solid ${form.bairro === b ? 'var(--accent)' : 'rgba(240,232,221,.2)'}`, background: form.bairro === b ? 'rgba(201,162,126,.12)' : 'transparent', color: form.bairro === b ? 'var(--accent)' : 'var(--sand)' }}>{b}</button>
                   ))}
                 </div>
                 <Hint>Toque numa sugestão ou escreva outro bairro.</Hint>
               </Field>
               <Field label="CEP">
                 <input value={form.cep} onChange={e => set({ cep: maskCep(e.target.value) })} placeholder="58000-000" inputMode="numeric"
-                  style={{ ...inp, borderColor: form.cep && !cepValido(form.cep) ? 'rgba(200,138,122,.6)' : 'rgba(243,237,227,.15)' }} />
+                  style={{ ...inp, borderColor: form.cep && !cepValido(form.cep) ? 'rgba(200,138,122,.6)' : 'rgba(240,232,221,.15)' }} />
                 {form.cep && !cepValido(form.cep)
                   ? <Hint><span style={{ color: '#c88a7a' }}>CEP incompleto — o portal recusa o anúncio. Precisa ter 8 dígitos.</span></Hint>
                   : <Hint>Obrigatório para publicar no Zap / VivaReal / OLX. Não aparece no nosso site.</Hint>}
@@ -437,7 +457,7 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
                 <Field label="Andar">
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {['Térreo', '1º', '2º', '3º', '4º+', 'Cobertura'].map(a => (
-                      <button key={a} onClick={() => set({ andar: a })} style={{ padding: '10px 16px', borderRadius: 999, fontSize: 14, fontWeight: form.andar === a ? 700 : 400, border: `1px solid ${form.andar === a ? 'var(--accent)' : 'rgba(243,237,227,.2)'}`, background: form.andar === a ? 'rgba(232,168,124,.12)' : 'transparent', color: form.andar === a ? 'var(--accent)' : 'var(--sand)' }}>{a}</button>
+                      <button key={a} onClick={() => set({ andar: a })} style={{ padding: '10px 16px', borderRadius: 999, fontSize: 14, fontWeight: form.andar === a ? 700 : 400, border: `1px solid ${form.andar === a ? 'var(--accent)' : 'rgba(240,232,221,.2)'}`, background: form.andar === a ? 'rgba(201,162,126,.12)' : 'transparent', color: form.andar === a ? 'var(--accent)' : 'var(--sand)' }}>{a}</button>
                     ))}
                   </div>
                   <input value={form.andar} onChange={e => set({ andar: e.target.value })} placeholder="Ou escreva… ex.: 12º andar" style={inp} />
@@ -446,7 +466,7 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
               <Field label="Posição do sol">
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {POSICOES.map(p => (
-                    <button key={p} onClick={() => set({ posicao: form.posicao === p ? '' : p })} style={{ padding: '10px 16px', borderRadius: 999, fontSize: 14, fontWeight: form.posicao === p ? 700 : 400, border: `1px solid ${form.posicao === p ? 'var(--accent)' : 'rgba(243,237,227,.2)'}`, background: form.posicao === p ? 'rgba(232,168,124,.12)' : 'transparent', color: form.posicao === p ? 'var(--accent)' : 'var(--sand)' }}>{p}</button>
+                    <button key={p} onClick={() => set({ posicao: form.posicao === p ? '' : p })} style={{ padding: '10px 16px', borderRadius: 999, fontSize: 14, fontWeight: form.posicao === p ? 700 : 400, border: `1px solid ${form.posicao === p ? 'var(--accent)' : 'rgba(240,232,221,.2)'}`, background: form.posicao === p ? 'rgba(201,162,126,.12)' : 'transparent', color: form.posicao === p ? 'var(--accent)' : 'var(--sand)' }}>{p}</button>
                   ))}
                 </div>
                 <Hint>Aparece na página do imóvel. Toque de novo para desmarcar.</Hint>
@@ -465,7 +485,7 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
                           const on = (form.features || []).includes(f);
                           return (
                             <button key={f} onClick={() => set({ features: on ? form.features.filter(x => x !== f) : [...(form.features || []), f] })}
-                              style={{ padding: '9px 13px', borderRadius: 999, fontSize: 12.5, fontWeight: on ? 700 : 400, border: `1px solid ${on ? 'var(--accent)' : 'rgba(243,237,227,.2)'}`, background: on ? 'rgba(232,168,124,.12)' : 'transparent', color: on ? 'var(--accent)' : 'var(--sand)' }}>{f}</button>
+                              style={{ padding: '9px 13px', borderRadius: 999, fontSize: 12.5, fontWeight: on ? 700 : 400, border: `1px solid ${on ? 'var(--accent)' : 'rgba(240,232,221,.2)'}`, background: on ? 'rgba(201,162,126,.12)' : 'transparent', color: on ? 'var(--accent)' : 'var(--sand)' }}>{f}</button>
                           );
                         })}
                       </div>
@@ -480,8 +500,8 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
           {step === 3 && (
             <>
               <h2 style={h2}>Valores</h2>
-              <Field label={isAluguel ? 'Valor do aluguel' : 'Valor de venda'}>
-                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-2)', border: '1px solid rgba(232,168,124,.4)', borderRadius: 14, padding: '0 18px' }}>
+              <Field label={isTemporada ? 'Valor da diária' : isAluguel ? 'Valor do aluguel' : 'Valor de venda'}>
+                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-2)', border: '1px solid rgba(201,162,126,.4)', borderRadius: 14, padding: '0 18px' }}>
                   <span style={{ fontSize: 18, color: 'var(--taupe)' }}>R$</span>
                   <input value={maskThousands(form.preco)} onChange={e => set({ preco: onlyDigits(e.target.value) })} placeholder="0" inputMode="numeric" style={{ flex: 1, background: 'transparent', border: 0, padding: '18px 12px', fontSize: 24, fontWeight: 700, color: 'var(--cream-2)', minWidth: 0 }} />
                   {isAluguel && <span style={{ fontSize: 14, color: 'var(--taupe)' }}>/mês</span>}
@@ -501,11 +521,11 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
                 <UtilField label="Água" value={form.agua_tipo} onPick={v => set({ agua_tipo: v })} />
                 <UtilField label="Gás" value={form.gas_tipo} onPick={v => set({ gas_tipo: v })} />
               </div>
-              <div style={{ background: 'rgba(232,168,124,.06)', border: '1px solid rgba(232,168,124,.22)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ background: 'rgba(201,162,126,.06)', border: '1px solid rgba(201,162,126,.22)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sand)' }}>Captação <span style={{ fontWeight: 400, color: 'var(--muted)' }}>· controle interno</span></div>
                 <div style={{ display: 'flex', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10, padding: 3 }}>
                   {[['propria', 'Própria'], ['parceiro', 'De parceiro']].map(([k, l]) => (
-                    <button key={k} onClick={() => set({ captacao: k })} style={{ flex: 1, padding: '9px 4px', borderRadius: 7, border: 0, fontSize: 12.5, fontWeight: form.captacao === k ? 700 : 400, background: form.captacao === k ? 'var(--accent)' : 'transparent', color: form.captacao === k ? '#2A2117' : 'var(--taupe)' }}>{l}</button>
+                    <button key={k} onClick={() => set({ captacao: k })} style={{ flex: 1, padding: '9px 4px', borderRadius: 7, border: 0, fontSize: 12.5, fontWeight: form.captacao === k ? 700 : 400, background: form.captacao === k ? 'var(--accent)' : 'transparent', color: form.captacao === k ? '#22251A' : 'var(--taupe)' }}>{l}</button>
                   ))}
                 </div>
                 {form.captacao === 'parceiro' && (
@@ -516,7 +536,7 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
                 )}
                 <Hint>🔒 Vai só para o atendimento (payload do lead) — não aparece no site nem nos portais.</Hint>
               </div>
-              <div style={{ background: 'rgba(232,168,124,.06)', border: '1px solid rgba(232,168,124,.22)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ background: 'rgba(201,162,126,.06)', border: '1px solid rgba(201,162,126,.22)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sand)' }}>Parceria <span style={{ fontWeight: 400, color: 'var(--muted)' }}>· controle interno</span></div>
                 <select value={form.parceiro_id} onChange={e => set({ parceiro_id: e.target.value })} style={{ ...inp, appearance: 'auto' }}>
                   <option value="">Sem parceria</option>
@@ -527,8 +547,8 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
                 ) : (
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input value={nomeParceiro} onChange={e => setNomeParceiro(e.target.value)} placeholder="Nome do corretor / imobiliária" style={{ ...inp, flex: 1 }} />
-                    <button onClick={criarParceiro} style={{ padding: '0 16px', borderRadius: 12, background: 'var(--accent)', color: '#2A2117', fontSize: 13, fontWeight: 700, border: 0 }}>Salvar</button>
-                    <button onClick={() => { setNovoParceiro(false); setNomeParceiro(''); }} style={{ padding: '0 12px', borderRadius: 12, background: 'transparent', border: '1px solid rgba(243,237,227,.2)', color: 'var(--taupe)', fontSize: 13 }}>×</button>
+                    <button onClick={criarParceiro} style={{ padding: '0 16px', borderRadius: 12, background: 'var(--accent)', color: '#22251A', fontSize: 13, fontWeight: 700, border: 0 }}>Salvar</button>
+                    <button onClick={() => { setNovoParceiro(false); setNomeParceiro(''); }} style={{ padding: '0 12px', borderRadius: 12, background: 'transparent', border: '1px solid rgba(240,232,221,.2)', color: 'var(--taupe)', fontSize: 13 }}>×</button>
                   </div>
                 )}
                 {form.parceiro_id && (
@@ -563,19 +583,19 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
               )}
               <div style={{ display: 'flex', background: 'var(--bg-2)', borderRadius: 12, padding: 4, border: '1px solid var(--line)' }}>
                 {[['link', 'YouTube'], ['arquivo', 'Vídeo automático']].map(([k, l]) => (
-                  <button key={k} onClick={() => set({ videoMode: k })} style={{ flex: 1, padding: '11px 8px', borderRadius: 9, border: 0, fontSize: 13.5, fontWeight: (form.videoMode || 'link') === k ? 700 : 400, background: (form.videoMode || 'link') === k ? 'var(--accent)' : 'transparent', color: (form.videoMode || 'link') === k ? '#2A2117' : 'var(--taupe)' }}>{l}</button>
+                  <button key={k} onClick={() => set({ videoMode: k })} style={{ flex: 1, padding: '11px 8px', borderRadius: 9, border: 0, fontSize: 13.5, fontWeight: (form.videoMode || 'link') === k ? 700 : 400, background: (form.videoMode || 'link') === k ? 'var(--accent)' : 'transparent', color: (form.videoMode || 'link') === k ? '#22251A' : 'var(--taupe)' }}>{l}</button>
                 ))}
               </div>
               {(form.videoMode || 'link') === 'link' && (
                 <Field label="Link do tour no YouTube (vídeo ou Shorts)">
                   <input value={form.video} onChange={e => set({ video: e.target.value })} placeholder="Cole o link… ex.: youtube.com/shorts/…" style={inp} />
                   <Hint>Grátis e ilimitado. No computador roda sozinho; no celular o cliente toca pra assistir.</Hint>
-                  {vid && <div style={{ aspectRatio: '16/9', borderRadius: 14, background: `url("${ytThumb(vid)}") center/cover`, position: 'relative', marginTop: 4 }}><span style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(31,24,18,.8)', fontSize: 11, padding: '4px 9px', borderRadius: 5 }}>✓ Vídeo reconhecido</span></div>}
+                  {vid && <div style={{ aspectRatio: '16/9', borderRadius: 14, background: `url("${ytThumb(vid)}") center/cover`, position: 'relative', marginTop: 4 }}><span style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(33,36,25,.8)', fontSize: 11, padding: '4px 9px', borderRadius: 5 }}>✓ Vídeo reconhecido</span></div>}
                 </Field>
               )}
               {(form.videoMode || 'link') === 'arquivo' && (
                 <Field label="Vídeo que roda sozinho (inclusive no iPhone)">
-                  <div style={{ background: 'rgba(232,168,124,.06)', border: '1px solid rgba(232,168,124,.22)', borderRadius: 12, padding: '12px 14px' }}>
+                  <div style={{ background: 'rgba(201,162,126,.06)', border: '1px solid rgba(201,162,126,.22)', borderRadius: 12, padding: '12px 14px' }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', marginBottom: 8 }}>OPÇÃO A — Colar link do vídeo (MP4) · sem limite de tamanho</div>
                     <input value={form.videoUrl} onChange={e => set({ videoUrl: e.target.value })} placeholder="https://…/tour.mp4" style={inp} />
                     <Hint>Link direto de um arquivo .mp4 (ex.: Cloudflare R2 — grátis). Ideal para tours grandes que rodam sozinhos no celular.</Hint>
@@ -590,7 +610,7 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--taupe)' }}>OPÇÃO B — Subir do celular · direto pro Cloudflare</div>
                   {!videoArquivo && (
-                    <label style={{ position: 'relative', border: '2px dashed rgba(232,168,124,.4)', borderRadius: 14, padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: 'var(--accent)', cursor: 'pointer', background: 'rgba(232,168,124,.05)' }}>
+                    <label style={{ position: 'relative', border: '2px dashed rgba(201,162,126,.4)', borderRadius: 14, padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: 'var(--accent)', cursor: 'pointer', background: 'rgba(201,162,126,.05)' }}>
                       <input type="file" accept="video/*" onChange={onPickVideo} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
                       <span style={{ fontSize: 24 }}>↑</span>
                       <span style={{ fontSize: 14, fontWeight: 700 }}>Subir vídeo do celular</span>
@@ -600,7 +620,7 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
                   {videoArquivo && (
                     <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', background: '#000' }}>
                       <video src={videoArquivo.preview} muted playsInline controls style={{ width: '100%', maxHeight: 300, display: 'block' }} />
-                      <button onClick={() => setVideoArquivo(null)} style={{ position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: 999, background: 'rgba(31,24,18,.85)', color: 'var(--cream)', border: 0, fontSize: 16 }}>×</button>
+                      <button onClick={() => setVideoArquivo(null)} style={{ position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: 999, background: 'rgba(33,36,25,.85)', color: 'var(--cream)', border: 0, fontSize: 16 }}>×</button>
                     </div>
                   )}
                 </Field>
@@ -609,7 +629,7 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                   {fotosSalvas.map((f, i) => (
                     <div key={f.id} style={{ position: 'relative', aspectRatio: 1, borderRadius: 12, background: `url("${f.thumb_url || f.url}") center/cover` }}>
-                      <span style={{ position: 'absolute', top: 5, left: 5, background: 'rgba(31,24,18,.8)', color: 'var(--cream)', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5 }}>{i === 0 && !vid ? 'CAPA' : i + 1}</span>
+                      <span style={{ position: 'absolute', top: 5, left: 5, background: 'rgba(33,36,25,.8)', color: 'var(--cream)', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5 }}>{i === 0 && !vid ? 'CAPA' : i + 1}</span>
                       <div style={{ position: 'absolute', bottom: 5, left: 5, right: 5, display: 'flex', justifyContent: 'space-between' }}>
                         <button onClick={() => moveFotoSalva(i, i - 1)} disabled={i === 0} style={fotoNav(i === 0)}>‹</button>
                         <button onClick={() => apagarFotoSalva(f)} style={{ ...fotoNav(false), color: '#e8a79a' }}>×</button>
@@ -624,7 +644,7 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
                       onDragOver={e => e.preventDefault()}
                       onDrop={() => moveFoto(dragIdx, i)}
                       style={{ position: 'relative', aspectRatio: 1, borderRadius: 12, background: `url("${f.preview}") center/cover`, cursor: 'grab', outline: dragIdx === i ? '2px solid var(--accent)' : 'none' }}>
-                      <span style={{ position: 'absolute', top: 5, left: 5, background: 'rgba(31,24,18,.8)', color: 'var(--cream)', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5 }}>{i === 0 ? 'CAPA' : i + 1}</span>
+                      <span style={{ position: 'absolute', top: 5, left: 5, background: 'rgba(33,36,25,.8)', color: 'var(--cream)', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5 }}>{i === 0 ? 'CAPA' : i + 1}</span>
                       <div style={{ position: 'absolute', bottom: 5, left: 5, right: 5, display: 'flex', justifyContent: 'space-between' }}>
                         <button onClick={() => moveFoto(i, i - 1)} disabled={i === 0} style={fotoNav(i === 0)}>‹</button>
                         <button onClick={() => removeFoto(i)} style={{ ...fotoNav(false), color: '#e8a79a' }}>×</button>
@@ -632,7 +652,7 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
                       </div>
                     </div>
                   ))}
-                  <label style={{ position: 'relative', aspectRatio: 1, borderRadius: 12, border: '2px dashed rgba(243,237,227,.25)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--taupe)', cursor: 'pointer' }}>
+                  <label style={{ position: 'relative', aspectRatio: 1, borderRadius: 12, border: '2px dashed rgba(240,232,221,.25)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--taupe)', cursor: 'pointer' }}>
                     <input type="file" accept="image/*" multiple onChange={addFotos} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
                     <span style={{ fontSize: 24 }}>+</span><span style={{ fontSize: 11.5 }}>Adicionar</span>
                   </label>
@@ -640,7 +660,7 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
                 <Hint>Arraste para reordenar (ou use ‹ ›). A 1ª foto é a capa. O × nas fotos já salvas apaga na hora; a ordem vale para o site e para o portal.</Hint>
               </Field>
               <Field label="Descrição (opcional)">
-                <button onClick={gerarDescricao} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(232,168,124,.12)', border: '1px solid rgba(232,168,124,.45)', color: 'var(--accent)', padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>✦ Gerar descrição com o que já preenchi</button>
+                <button onClick={gerarDescricao} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(201,162,126,.12)', border: '1px solid rgba(201,162,126,.45)', color: 'var(--accent)', padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>✦ Gerar descrição com o que já preenchi</button>
                 <textarea value={form.descricao} onChange={e => set({ descricao: e.target.value })} rows={10} placeholder="Detalhes do imóvel… (ou toque em Gerar descrição)" style={{ ...inp, resize: 'vertical' }} />
                 <Hint>Gera um rascunho a partir das informações do anúncio — revise e ajuste à vontade antes de salvar.</Hint>
               </Field>
@@ -651,10 +671,10 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
             <>
               <h2 style={h2}>Título e revisão</h2>
               <Field label="Título do anúncio">
-                <div style={{ background: 'rgba(232,168,124,.07)', border: '1px solid rgba(232,168,124,.25)', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ background: 'rgba(201,162,126,.07)', border: '1px solid rgba(201,162,126,.25)', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', color: 'var(--accent)' }}>🔎 SUGESTÃO OTIMIZADA PARA O GOOGLE</div>
                   <div style={{ fontSize: 14, color: 'var(--cream)', lineHeight: 1.45 }}>{seoTitle}</div>
-                  <button onClick={() => set({ titulo: seoTitle })} style={{ alignSelf: 'flex-start', background: 'var(--accent)', color: '#2A2117', padding: '9px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, border: 0 }}>Usar esta sugestão</button>
+                  <button onClick={() => set({ titulo: seoTitle })} style={{ alignSelf: 'flex-start', background: 'var(--accent)', color: '#22251A', padding: '9px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, border: 0 }}>Usar esta sugestão</button>
                 </div>
                 <input value={form.titulo} onChange={e => set({ titulo: e.target.value })} placeholder="Ou escreva o seu…" style={inp} />
                 <Hint>A sugestão é montada a partir das infos que você preencheu. Pode usá-la ou ajustar.</Hint>
@@ -664,12 +684,12 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
                 <Hint>Se deixar em branco, usamos <strong style={{ color: 'var(--accent)' }}>{codigoSugerido}</strong>. Aparece no anúncio e na mensagem do WhatsApp — facilita achar o imóvel internamente.</Hint>
               </Field>
 
-              <div style={{ background: 'var(--bg-2)', border: `1px solid ${qual.score >= 80 ? 'rgba(168,192,143,.35)' : 'rgba(232,168,124,.3)'}`, borderRadius: 14, padding: '15px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ background: 'var(--bg-2)', border: `1px solid ${qual.score >= 80 ? 'rgba(168,192,143,.35)' : 'rgba(201,162,126,.3)'}`, borderRadius: 14, padding: '15px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                   <strong style={{ fontSize: 13.5, color: 'var(--cream-2)' }}>Força do anúncio nos portais</strong>
                   <span style={{ fontSize: 15, fontWeight: 700, color: qual.score >= 80 ? 'var(--green)' : 'var(--accent)' }}>{qual.score}%</span>
                 </div>
-                <div style={{ height: 7, borderRadius: 999, background: 'rgba(243,237,227,.1)', overflow: 'hidden' }}>
+                <div style={{ height: 7, borderRadius: 999, background: 'rgba(240,232,221,.1)', overflow: 'hidden' }}>
                   <div style={{ width: `${qual.score}%`, height: '100%', background: qual.score >= 80 ? 'var(--green)' : qual.score >= 55 ? 'var(--accent)' : '#c88a7a' }}></div>
                 </div>
                 {qual.faltando.length === 0 ? (
@@ -689,10 +709,10 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
               <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 14, overflow: 'hidden' }}>
                 <div style={{ aspectRatio: '16/10', background: capaBg, position: 'relative' }}>
                   {videoPreviewUrl && <video src={videoPreviewUrl} muted playsInline loop autoPlay preload="metadata" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
-                  <span style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(31,24,18,.85)', color: isAluguel ? 'var(--accent)' : 'var(--green)', fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', padding: '5px 10px', borderRadius: 6 }}>{isAluguel ? 'ALUGUEL' : 'VENDA'}</span>
+                  <span style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(33,36,25,.85)', color: isAluguel ? 'var(--accent)' : 'var(--green)', fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', padding: '5px 10px', borderRadius: 6 }}>{isTemporada ? 'TEMPORADA' : isAluguel ? 'ALUGUEL' : form.estagio === 'planta' ? 'NA PLANTA' : 'VENDA'}</span>
                 </div>
                 <div style={{ padding: '16px 18px' }}>
-                  <div style={{ fontSize: 19, fontWeight: 700, color: 'var(--cream-2)' }}>{form.preco ? formatPreco(parsePreco(form.preco)) : 'R$ —'}<span style={{ fontSize: 12.5, color: 'var(--taupe)' }}>{isAluguel ? '/mês' : ''}</span></div>
+                  <div style={{ fontSize: 19, fontWeight: 700, color: 'var(--cream-2)' }}>{form.preco ? formatPreco(parsePreco(form.preco)) : 'R$ —'}<span style={{ fontSize: 12.5, color: 'var(--taupe)' }}>{isTemporada ? '/diária' : isAluguel ? '/mês' : ''}</span></div>
                   <div style={{ fontSize: 13.5, color: 'var(--sand)', margin: '5px 0 10px' }}>{form.titulo || seoTitle} · {form.bairro || 'João Pessoa'}</div>
                   <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--muted)', flexWrap: 'wrap' }}>
                     <span>{form.quartos} quartos</span><span>{form.banheiros} banh.</span><span>{form.vagas} vagas</span><span>{form.area || '—'} m²</span><span>{MOBILIA_LABELS[form.mobilia]}</span>
@@ -711,15 +731,15 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
               <div style={{ width: 72, height: 72, borderRadius: 999, background: 'rgba(168,192,143,.15)', border: '1px solid rgba(168,192,143,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, color: 'var(--green)' }}>✓</div>
               <h2 style={{ ...h2, fontSize: 26 }}>{editando ? 'Alterações salvas!' : 'Anúncio publicado!'}</h2>
               <p style={{ fontSize: 14, color: 'var(--taupe)', maxWidth: 280, lineHeight: 1.55 }}>{form.titulo || seoTitle} já está no ar em {form.bairro || 'João Pessoa'}.</p>
-              <a href="/admin/novo" style={{ marginTop: 12, background: 'var(--accent)', color: '#2A2117', padding: '15px 28px', borderRadius: 12, fontSize: 15, fontWeight: 700 }}>Cadastrar outro imóvel</a>
-              <a href="/admin" style={{ padding: '13px 28px', borderRadius: 12, border: '1px solid rgba(243,237,227,.25)', color: 'var(--cream)', fontSize: 14, fontWeight: 600 }}>Ver meus imóveis</a>
+              <a href="/admin/novo" style={{ marginTop: 12, background: 'var(--accent)', color: '#22251A', padding: '15px 28px', borderRadius: 12, fontSize: 15, fontWeight: 700 }}>Cadastrar outro imóvel</a>
+              <a href="/admin" style={{ padding: '13px 28px', borderRadius: 12, border: '1px solid rgba(240,232,221,.25)', color: 'var(--cream)', fontSize: 14, fontWeight: 600 }}>Ver meus imóveis</a>
             </div>
           )}
         </div>
 
         {step < 6 && (
           <div style={{ position: 'sticky', bottom: 0, padding: '14px 20px 20px', background: 'linear-gradient(to top,var(--bg) 65%,transparent)' }}>
-            <button onClick={next} disabled={salvando} style={{ width: '100%', height: 54, borderRadius: 14, background: 'var(--accent)', color: '#2A2117', fontSize: 16, fontWeight: 700, border: 0 }}>
+            <button onClick={next} disabled={salvando} style={{ width: '100%', height: 54, borderRadius: 14, background: 'var(--accent)', color: '#22251A', fontSize: 16, fontWeight: 700, border: 0 }}>
               {salvando ? (videoPct > 0 && videoPct < 100 ? `Enviando vídeo… ${videoPct}%` : 'Salvando…') : step === 5 ? (editando ? 'Salvar alterações' : 'Publicar imóvel') : 'Continuar'}
             </button>
           </div>
@@ -733,16 +753,16 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
             <div style={{ position: 'relative', aspectRatio: '9/16', background: capaBg }}>
               {videoPreviewUrl && <video src={videoPreviewUrl} muted playsInline loop autoPlay preload="metadata" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
               {semMidia && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'rgba(243,237,227,.45)', fontSize: 12, textAlign: 'center', padding: 20 }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'rgba(240,232,221,.45)', fontSize: 12, textAlign: 'center', padding: 20 }}>
                   <span style={{ fontSize: 22 }}>▶</span>
                   Sem vídeo nem foto ainda—<br />adicione no passo “Vídeo e fotos”
                 </div>
               )}
-              <span style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(31,24,18,.85)', color: isAluguel ? 'var(--accent)' : 'var(--green)', fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', padding: '5px 10px', borderRadius: 6 }}>{isAluguel ? 'ALUGUEL' : 'VENDA'}</span>
-              {(vid || videoPreviewUrl) && <span style={{ position: 'absolute', bottom: 12, left: 12, width: 30, height: 30, borderRadius: 999, background: 'rgba(243,237,227,.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2A2117', fontSize: 12 }}>▶</span>}
+              <span style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(33,36,25,.85)', color: isAluguel ? 'var(--accent)' : 'var(--green)', fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', padding: '5px 10px', borderRadius: 6 }}>{isTemporada ? 'TEMPORADA' : isAluguel ? 'ALUGUEL' : form.estagio === 'planta' ? 'NA PLANTA' : 'VENDA'}</span>
+              {(vid || videoPreviewUrl) && <span style={{ position: 'absolute', bottom: 12, left: 12, width: 30, height: 30, borderRadius: 999, background: 'rgba(240,232,221,.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22251A', fontSize: 12 }}>▶</span>}
             </div>
             <div style={{ padding: '14px 16px 16px' }}>
-              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--cream-2)' }}>{form.preco ? formatPreco(parsePreco(form.preco)) : 'R$ —'}<span style={{ fontSize: 12, color: 'var(--taupe)' }}>{isAluguel ? '/mês' : ''}</span></div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--cream-2)' }}>{form.preco ? formatPreco(parsePreco(form.preco)) : 'R$ —'}<span style={{ fontSize: 12, color: 'var(--taupe)' }}>{isTemporada ? '/diária' : isAluguel ? '/mês' : ''}</span></div>
               <div style={{ fontSize: 12.5, color: 'var(--sand)', margin: '4px 0 9px' }}>{form.titulo || seoTitle} · {form.bairro || 'João Pessoa'}</div>
               <div style={{ display: 'flex', gap: '8px 11px', fontSize: 11, color: 'var(--muted)', flexWrap: 'wrap' }}>
                 <span>{form.quartos} quartos</span><span>{form.banheiros} banh.</span><span>{form.vagas} vagas</span><span>{form.area || '—'} m²</span><span>{MOBILIA_LABELS[form.mobilia]}</span>
@@ -756,18 +776,18 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
   );
 }
 
-const inp = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-2)', border: '1px solid rgba(243,237,227,.15)', borderRadius: 12, padding: '15px 16px', fontSize: 16, color: 'var(--cream)' };
+const inp = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-2)', border: '1px solid rgba(240,232,221,.15)', borderRadius: 12, padding: '15px 16px', fontSize: 16, color: 'var(--cream)' };
 const maskCep = (v) => {
   const n = String(v).replace(/\D/g, '').slice(0, 8);
   return n.length > 5 ? `${n.slice(0, 5)}-${n.slice(5)}` : n;
 };
-const dinInp = { display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-2)', border: '1px solid rgba(243,237,227,.15)', borderRadius: 12, padding: '0 14px' };
+const dinInp = { display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-2)', border: '1px solid rgba(240,232,221,.15)', borderRadius: 12, padding: '0 14px' };
 const dinR = { fontSize: 14, color: 'var(--muted)' };
 const dinField = { flex: 1, minWidth: 0, background: 'transparent', border: 0, padding: '15px 0', fontSize: 16, color: 'var(--cream)' };
 const h2 = { fontSize: 24, color: 'var(--cream-2)', margin: 0 };
-const bigOpt = (sel) => ({ padding: '22px 16px', borderRadius: 14, border: `2px solid ${sel ? 'var(--accent)' : 'rgba(243,237,227,.15)'}`, background: sel ? 'rgba(232,168,124,.1)' : 'var(--bg-2)', textAlign: 'center', cursor: 'pointer' });
-const counterBtn = (filled) => ({ width: 44, height: 44, borderRadius: 999, border: filled ? 0 : '1px solid rgba(243,237,227,.2)', background: filled ? 'var(--accent)' : 'transparent', color: filled ? '#2A2117' : 'var(--sand)', fontSize: 20 });
-const fotoNav = (disabled) => ({ width: 26, height: 26, borderRadius: 7, border: 0, background: 'rgba(31,24,18,.8)', color: 'var(--cream)', fontSize: 15, lineHeight: 1, opacity: disabled ? 0.3 : 1, cursor: disabled ? 'default' : 'pointer' });
+const bigOpt = (sel) => ({ padding: '22px 16px', borderRadius: 14, border: `2px solid ${sel ? 'var(--accent)' : 'rgba(240,232,221,.15)'}`, background: sel ? 'rgba(201,162,126,.1)' : 'var(--bg-2)', textAlign: 'center', cursor: 'pointer' });
+const counterBtn = (filled) => ({ width: 44, height: 44, borderRadius: 999, border: filled ? 0 : '1px solid rgba(240,232,221,.2)', background: filled ? 'var(--accent)' : 'transparent', color: filled ? '#22251A' : 'var(--sand)', fontSize: 20 });
+const fotoNav = (disabled) => ({ width: 26, height: 26, borderRadius: 7, border: 0, background: 'rgba(33,36,25,.8)', color: 'var(--cream)', fontSize: 15, lineHeight: 1, opacity: disabled ? 0.3 : 1, cursor: disabled ? 'default' : 'pointer' });
 
 function Label({ children }) { return <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sand)', marginTop: 6 }}>{children}</div>; }
 function Hint({ children }) { return <span style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{children}</span>; }
@@ -780,7 +800,7 @@ function UtilField({ label, value, onPick }) {
       <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sand)' }}>{label}</span>
       <div style={{ display: 'flex', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10, padding: 3 }}>
         {opts.map(([k, l]) => (
-          <button key={k} onClick={() => onPick(k)} style={{ flex: 1, padding: '9px 2px', borderRadius: 7, border: 0, fontSize: 11.5, fontWeight: v === k ? 700 : 400, background: v === k ? 'var(--accent)' : 'transparent', color: v === k ? '#2A2117' : 'var(--taupe)' }}>{l}</button>
+          <button key={k} onClick={() => onPick(k)} style={{ flex: 1, padding: '9px 2px', borderRadius: 7, border: 0, fontSize: 11.5, fontWeight: v === k ? 700 : 400, background: v === k ? 'var(--accent)' : 'transparent', color: v === k ? '#22251A' : 'var(--taupe)' }}>{l}</button>
         ))}
       </div>
     </div>
@@ -796,7 +816,7 @@ function TaxaField({ label, tipo, valor, onTipo, onValor, aluguel }) {
       <div style={{ display: 'flex', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10, padding: 3 }}>
         {opts.map(([k, l]) => (
           <button key={k} onClick={() => onTipo(k)}
-            style={{ flex: 1, padding: '9px 4px', borderRadius: 7, border: 0, fontSize: 12, fontWeight: t === k ? 700 : 400, background: t === k ? 'var(--accent)' : 'transparent', color: t === k ? '#2A2117' : 'var(--taupe)' }}>{l}</button>
+            style={{ flex: 1, padding: '9px 4px', borderRadius: 7, border: 0, fontSize: 12, fontWeight: t === k ? 700 : 400, background: t === k ? 'var(--accent)' : 'transparent', color: t === k ? '#22251A' : 'var(--taupe)' }}>{l}</button>
         ))}
       </div>
       {t === 'valor' && (
@@ -813,6 +833,6 @@ function TaxaField({ label, tipo, valor, onTipo, onValor, aluguel }) {
 
 function Chips({ opts, value, onPick }) {
   return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>{opts.map(([k, l]) => (
-    <button key={k} onClick={() => onPick(k)} style={{ padding: '12px 18px', borderRadius: 999, fontSize: 14, fontWeight: value === k ? 700 : 400, border: `1px solid ${value === k ? 'var(--accent)' : 'rgba(243,237,227,.2)'}`, background: value === k ? 'rgba(232,168,124,.12)' : 'transparent', color: value === k ? 'var(--accent)' : 'var(--sand)' }}>{l}</button>
+    <button key={k} onClick={() => onPick(k)} style={{ padding: '12px 18px', borderRadius: 999, fontSize: 14, fontWeight: value === k ? 700 : 400, border: `1px solid ${value === k ? 'var(--accent)' : 'rgba(240,232,221,.2)'}`, background: value === k ? 'rgba(201,162,126,.12)' : 'transparent', color: value === k ? 'var(--accent)' : 'var(--sand)' }}>{l}</button>
   ))}</div>;
 }

@@ -5,6 +5,7 @@ import { ytId, ytEmbed, maskThousands, whatsappLink } from '../lib/format';
 import FormWhats from './FormWhats';
 import { semAcento, soLetrasNumeros, FILTROS_PADRAO, filtrosDaUrl, urlDosFiltros, lembrarBusca, lembrarRolagem, pegarRolagem } from '../lib/busca';
 import CardImovel from './CardImovel';
+import { SECOES, naSecao, COMERCIAIS } from '../lib/secoes';
 import IconeWhats from './IconeWhats';
 
 const QUARTOS = ['1', '2', '3', '4'];
@@ -12,14 +13,14 @@ const ORDENS = [
   { k: 'relevancia', label: 'Destaques' }, { k: 'menor', label: 'Menor preço' },
   { k: 'maior', label: 'Maior preço' }, { k: 'recentes', label: 'Mais recentes' }
 ];
-const CATEGORIAS = ['Apartamento', 'Casa', 'Cobertura', 'Flat / Studio'];
+const CATEGORIAS = ['Apartamento', 'Casa', 'Cobertura', 'Flat / Studio', 'Terreno', ...COMERCIAIS];
 const MOBILIAS = [
   { k: 'todos', label: 'Todas' }, { k: 'mobiliado', label: 'Mobiliado' },
   { k: 'semi', label: 'Semimobiliado' }, { k: 'sem', label: 'Sem mobília' },
   { k: 'planejados', label: 'Com planejados' }
 ];
 
-export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats }) {
+export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats, creci }) {
   // Todos os filtros num objeto só, espelhado no link (?f=aluguel&q=manaira...).
   // Assim a busca pode ser compartilhada e continua igual quando a pessoa volta de um imóvel.
   const [fl, setFl] = useState(FILTROS_PADRAO);
@@ -107,7 +108,7 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
 
   const lista = useMemo(() => {
     const r = imoveis
-      .filter(i => filter === 'todos' || i.finalidade === filter)
+      .filter(i => naSecao(i, filter))
       .filter(matchImovel)
       .filter(i => fTipo === 'todos' || i.categoria === fTipo)
       .filter(i => pMin == null || i.preco_cents >= pMin * 100)
@@ -126,7 +127,7 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       {/* HEADER */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 40, background: 'rgba(31,24,18,.92)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--line)' }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 40, background: 'rgba(33,36,25,.92)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--line)' }}>
         <div className="container cab-home" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <img src="/brand/logo-creme.png" alt="Jassiara Vasconcelos" style={{ height: isMobile ? 30 : 36, width: 'auto'  }} />
@@ -134,7 +135,8 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 28 }}>
             {/* escondido no celular pelo CSS (classe so-pc), para já abrir certo antes do JavaScript carregar */}
             <nav className="so-pc" style={{ display: 'flex', gap: 26, fontSize: 14, color: 'var(--sand)' }}>
-              <button onClick={() => goToList('aluguel')} style={navLink}>Alugar</button>
+              <button onClick={() => goToList('temporada')} style={navLink}>Temporada</button>
+              <button onClick={() => goToList('anual')} style={navLink}>Alugar</button>
               <button onClick={() => goToList('venda')} style={navLink}>Comprar</button>
               <button onClick={() => goToList('todos')} style={navLink}>Imóveis</button>
             </nav>
@@ -142,7 +144,7 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
               <IconeWhats size={16} />WhatsApp
             </a>
             <Link href="/admin/login" title="Área do corretor" aria-label="Área do corretor"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 999, border: '1px solid rgba(243,237,227,.14)', color: '#7a6c59', flex: 'none' }}>
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 999, border: '1px solid rgba(240,232,221,.14)', color: '#7a6c59', flex: 'none' }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
             </Link>
           </div>
@@ -150,7 +152,7 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
       </header>
 
       {/* HERO */}
-      <section style={{ position: 'relative', minHeight: isMobile ? 'auto' : 'min(94vh, 800px)', background: heroYt ? `#2A2117 url("https://i.ytimg.com/vi/${heroYt}/hqdefault.jpg") center/cover` : 'linear-gradient(200deg,#4A3B2A,#2A2117 60%,#1F1812)', overflow: 'hidden', display: 'flex' }}>
+      <section style={{ position: 'relative', minHeight: isMobile ? 'auto' : 'min(94vh, 800px)', background: heroYt ? `#22251A url("https://i.ytimg.com/vi/${heroYt}/hqdefault.jpg") center/cover` : 'linear-gradient(200deg,#4A3B2A,#22251A 60%,#2B2E22)', overflow: 'hidden', display: 'flex' }}>
         {heroVideoFile && (
           <video src={heroVideoFile} autoPlay muted loop playsInline preload="auto"
             style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', minWidth: '100%', minHeight: '100%', objectFit: 'cover', border: 0 }} />
@@ -160,7 +162,7 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
             style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '100vw', height: '56.25vw', minHeight: '100%', minWidth: '177.78vh', border: 0, pointerEvents: 'none' }} title="Vídeo em destaque" />
         )}
         {!heroPlaying && (heroVideoFile || heroYt) && (
-          <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(to top, #1F1812 5%, rgba(31,24,18,0.55) 30%, rgba(31,24,18,0.15) 55%, transparent 78%), linear-gradient(to right, rgba(31,24,18,0.65) 0%, rgba(31,24,18,0.15) 45%, transparent 70%)' }} />
+          <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(to top, #2B2E22 5%, rgba(33,36,25,0.55) 30%, rgba(33,36,25,0.15) 55%, transparent 78%), linear-gradient(to right, rgba(33,36,25,0.65) 0%, rgba(33,36,25,0.15) 45%, transparent 70%)' }} />
         )}
         {!heroVideoFile && heroYt && heroPlaying && (
           <iframe src={ytEmbed(heroYt, { mute: 0, controls: 1, loop: 0, origin })} referrerPolicy="strict-origin-when-cross-origin"
@@ -169,31 +171,31 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
         {!heroPlaying && (
           <div className="container" style={{ position: 'relative', zIndex: 2, alignSelf: 'flex-end', width: '100%', padding: isMobile ? '0 20px 40px' : '0 56px 56px' }}>
             <div style={{ maxWidth: 620, paddingTop: isMobile ? 70 : 90 }}>
-              <div style={{ display: 'inline-flex', gap: 8, fontSize: 10.5, letterSpacing: '.2em', color: 'var(--accent)', border: '1px solid rgba(232,168,124,.4)', padding: '6px 12px', borderRadius: 999, marginBottom: 18 }}>JOÃO PESSOA · PB</div>
-              <h1 style={{ fontSize: 'clamp(26px, 4vw, 48px)', lineHeight: 1.14, color: 'var(--cream-2)', margin: 0, textShadow: '0 2px 24px rgba(0,0,0,.45)' }}>Morar bem em João Pessoa começa com um bom tour</h1>
-              <p style={{ fontSize: 'clamp(14px, 1.6vw, 16px)', color: 'var(--cream)', marginTop: 14, maxWidth: 460, lineHeight: 1.55, textShadow: '0 1px 12px rgba(0,0,0,.5)' }}>Todos os nossos imóveis têm tour guiado em vídeo. Conheça por dentro antes de agendar a visita.</p>
+              <div style={{ display: 'inline-flex', gap: 8, fontSize: 10.5, letterSpacing: '.2em', color: 'var(--accent)', border: '1px solid rgba(201,162,126,.4)', padding: '6px 12px', borderRadius: 999, marginBottom: 18 }}>JOÃO PESSOA · PB</div>
+              <h1 style={{ fontSize: 'clamp(26px, 4vw, 48px)', lineHeight: 1.14, color: 'var(--cream-2)', margin: 0, textShadow: '0 2px 24px rgba(0,0,0,.45)' }}>Seu próximo endereço em João Pessoa começa aqui</h1>
+              <p style={{ fontSize: 'clamp(14px, 1.6vw, 16px)', color: 'var(--cream)', marginTop: 14, maxWidth: 460, lineHeight: 1.55, textShadow: '0 1px 12px rgba(0,0,0,.5)' }}>Temporada, locação e compra, com tour em vídeo de cada imóvel e atendimento direto comigo.</p>
               <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap', alignItems: 'center' }}>
-                <button onClick={() => goToList('aluguel')} style={{ background: 'var(--accent)', color: '#2A2117', padding: '13px 24px', borderRadius: 8, fontSize: 14, fontWeight: 700, border: 0, cursor: 'pointer' }}>Ver imóveis para alugar</button>
-                <button onClick={() => goToList('venda')} style={{ border: '1px solid rgba(243,237,227,.5)', background: 'rgba(31,24,18,.25)', color: 'var(--cream)', padding: '13px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>À venda</button>
-                {!heroVideoFile && heroYt && <button onClick={() => setHeroPlaying(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: 0, color: 'var(--cream)', fontSize: 13, cursor: 'pointer', textShadow: '0 1px 8px rgba(0,0,0,.6)' }}><span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 999, background: 'rgba(31,24,18,.5)', border: '1px solid rgba(243,237,227,.4)' }}>▶</span> Assistir com som</button>}
+                <button onClick={() => goToList('anual')} style={{ background: 'var(--accent)', color: '#22251A', padding: '13px 24px', borderRadius: 8, fontSize: 14, fontWeight: 700, border: 0, cursor: 'pointer' }}>Ver imóveis para alugar</button>
+                <button onClick={() => goToList('venda')} style={{ border: '1px solid rgba(240,232,221,.5)', background: 'rgba(33,36,25,.25)', color: 'var(--cream)', padding: '13px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>À venda</button>
+                {!heroVideoFile && heroYt && <button onClick={() => setHeroPlaying(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: 0, color: 'var(--cream)', fontSize: 13, cursor: 'pointer', textShadow: '0 1px 8px rgba(0,0,0,.6)' }}><span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 999, background: 'rgba(33,36,25,.5)', border: '1px solid rgba(240,232,221,.4)' }}>▶</span> Assistir com som</button>}
               </div>
             </div>
 
             {/* BUSCA — sempre visível sobre o vídeo */}
-            <div style={{ marginTop: 26, background: 'rgba(31,24,18,.78)', backdropFilter: 'blur(10px)', border: '1px solid rgba(243,237,227,.14)', borderRadius: 16, padding: isMobile ? 14 : '18px 20px', maxWidth: 940, display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 18px 50px rgba(0,0,0,.35)' }}>
+            <div style={{ marginTop: 26, background: 'rgba(33,36,25,.78)', backdropFilter: 'blur(10px)', border: '1px solid rgba(240,232,221,.14)', borderRadius: 16, padding: isMobile ? 14 : '18px 20px', maxWidth: 940, display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 18px 50px rgba(0,0,0,.35)' }}>
               <div style={{ display: 'flex', gap: isMobile ? 10 : 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div style={{ flex: '1 1 190px', minWidth: 0 }}>
                   <div style={buscaLabel}>QUERO</div>
-                  <div style={{ display: 'flex', background: 'var(--bg-2)', borderRadius: 11, padding: 3, border: '1px solid rgba(243,237,227,.12)' }}>
-                    {[['aluguel', 'Alugar'], ['venda', 'Comprar'], ['todos', 'Tudo']].map(([k, l]) => (
-                      <button key={k} onClick={() => setFilter(k)} style={{ flex: 1, padding: '11px 6px', borderRadius: 9, border: 0, fontSize: 13.5, fontWeight: filter === k ? 700 : 500, background: filter === k ? 'var(--accent)' : 'transparent', color: filter === k ? '#2A2117' : 'var(--sand)', cursor: 'pointer' }}>{l}</button>
+                  <div style={{ display: 'flex', background: 'var(--bg-2)', borderRadius: 11, padding: 3, border: '1px solid rgba(240,232,221,.12)' }}>
+                    {[['temporada', 'Temporada'], ['anual', 'Alugar'], ['venda', 'Comprar']].map(([k, l]) => (
+                      <button key={k} onClick={() => setFilter(k)} style={{ flex: 1, padding: '11px 6px', borderRadius: 9, border: 0, fontSize: 13.5, fontWeight: filter === k ? 700 : 500, background: filter === k ? 'var(--accent)' : 'transparent', color: filter === k ? '#22251A' : 'var(--sand)', cursor: 'pointer' }}>{l}</button>
                     ))}
                   </div>
                 </div>
 
                 <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                   <div style={buscaLabel}>BAIRRO OU CÓDIGO</div>
-                  <input value={fBairro} onChange={e => setFBairro(e.target.value)} list="jd-bairros" placeholder={isMobile ? 'Bairro ou JDV1019' : 'ex.: Cabo Branco ou JDV1019'} style={buscaField} enterKeyHint="search" onKeyDown={e => { if (e.key === 'Enter') goToList(filter); }} />
+                  <input value={fBairro} onChange={e => setFBairro(e.target.value)} list="jd-bairros" placeholder={isMobile ? 'Bairro ou JSA-100' : 'ex.: Cabo Branco ou JSA-100'} style={buscaField} enterKeyHint="search" onKeyDown={e => { if (e.key === 'Enter') goToList(filter); }} />
                   <datalist id="jd-bairros">{bairros.map(b => <option key={b} value={b} />)}</datalist>
                 </div>
 
@@ -227,7 +229,7 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
                   </div>
                 </div>
 
-                <button onClick={() => goToList(filter)} style={{ flex: isMobile ? '1 1 100%' : '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--accent)', color: '#2A2117', border: 0, borderRadius: 11, padding: '15px 24px', fontSize: 14.5, fontWeight: 700, cursor: 'pointer' }}>
+                <button onClick={() => goToList(filter)} style={{ flex: isMobile ? '1 1 100%' : '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--accent)', color: '#22251A', border: 0, borderRadius: 11, padding: '15px 24px', fontSize: 14.5, fontWeight: 700, cursor: 'pointer' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
                   Ver {lista.length} {lista.length === 1 ? 'imóvel' : 'imóveis'}
                 </button>
@@ -239,7 +241,7 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
                   const sel = semAcento(fBairro) === semAcento(b);
                   return (
                     <button key={b} onClick={() => { setFBairro(sel ? '' : b); goToList(filter); }}
-                      style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, cursor: 'pointer', border: `1px solid ${sel ? 'var(--accent)' : 'rgba(243,237,227,.18)'}`, background: sel ? 'rgba(232,168,124,.14)' : 'transparent', color: sel ? 'var(--accent)' : 'var(--sand)' }}>{b}</button>
+                      style={{ padding: '5px 12px', borderRadius: 999, fontSize: 12, cursor: 'pointer', border: `1px solid ${sel ? 'var(--accent)' : 'rgba(240,232,221,.18)'}`, background: sel ? 'rgba(201,162,126,.14)' : 'transparent', color: sel ? 'var(--accent)' : 'var(--sand)' }}>{b}</button>
                   );
                 })}
                 <button onClick={() => { setShowFilters(true); goToList(filter); }} style={{ background: 'transparent', border: 0, color: 'var(--accent)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>mais filtros →</button>
@@ -255,36 +257,36 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
           <h2 style={{ fontSize: 24, color: 'var(--cream-2)', margin: 0 }}>Imóveis disponíveis <span style={{ fontSize: 14, color: 'var(--muted)', fontFamily: 'Karla, system-ui, sans-serif' }}>({lista.length})</span></h2>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <select value={ordem} onChange={e => setOrdem(e.target.value)} aria-label="Ordenar"
-              style={{ ...chip(ordem !== 'relevancia'), appearance: 'none', paddingRight: 28, background: `${ordem !== 'relevancia' ? 'rgba(232,168,124,.12)' : 'transparent'} url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23D8C9B2'/%3E%3C/svg%3E") no-repeat right 11px center` }}>
-              {ORDENS.map(o => <option key={o.k} value={o.k} style={{ color: '#2A2117' }}>{o.k === 'relevancia' ? 'Ordenar: destaques' : o.label}</option>)}
+              style={{ ...chip(ordem !== 'relevancia'), appearance: 'none', paddingRight: 28, background: `${ordem !== 'relevancia' ? 'rgba(201,162,126,.12)' : 'transparent'} url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23D8C9B2'/%3E%3C/svg%3E") no-repeat right 11px center` }}>
+              {ORDENS.map(o => <option key={o.k} value={o.k} style={{ color: '#22251A' }}>{o.k === 'relevancia' ? 'Ordenar: destaques' : o.label}</option>)}
             </select>
-            {['todos', 'aluguel', 'venda'].map(f => (
+            {SECOES.map(({ k: f, label }) => (
               <button key={f} onClick={() => setFilter(f)} style={chip(filter === f)}>
-                {f === 'todos' ? 'Todos' : f === 'aluguel' ? 'Aluguel' : 'Venda'}
+                {label}
               </button>
             ))}
-            <button onClick={() => setShowFilters(v => !v)} style={{ ...chip(false), borderColor: 'rgba(232,168,124,.45)', color: 'var(--accent)' }}>
+            <button onClick={() => setShowFilters(v => !v)} style={{ ...chip(false), borderColor: 'rgba(201,162,126,.45)', color: 'var(--accent)' }}>
               Filtros {activeCount > 0 ? `(${activeCount})` : ''}
             </button>
           </div>
         </div>
 
         {showFilters && (
-          <div style={{ background: 'var(--bg-2)', border: '1px solid rgba(243,237,227,.1)', borderRadius: 16, padding: 20, marginBottom: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ background: 'var(--bg-2)', border: '1px solid rgba(240,232,221,.1)', borderRadius: 16, padding: 20, marginBottom: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
             <Group label="BAIRRO OU CÓDIGO">
-              <input value={fBairro} onChange={e => setFBairro(e.target.value)} placeholder="Bairro ou código… ex.: Cabo Branco, JDV1019" style={inp} />
+              <input value={fBairro} onChange={e => setFBairro(e.target.value)} placeholder="Bairro ou código… ex.: Cabo Branco, JSA-100" style={inp} />
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 9 }}>
                 {bairros.map(b => { const sel = semAcento(fBairro) === semAcento(b); return <button key={b} onClick={() => setFBairro(sel ? '' : b)} style={chip(sel)}>{b}</button>; })}
               </div>
             </Group>
             <Group label="FAIXA DE VALOR">
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid rgba(243,237,227,.15)', borderRadius: 12, padding: '0 14px', flex: '1 1 130px', maxWidth: 200 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid rgba(240,232,221,.15)', borderRadius: 12, padding: '0 14px', flex: '1 1 130px', maxWidth: 200 }}>
                   <span style={{ fontSize: 14, color: 'var(--muted)' }}>R$</span>
                   <input value={maskThousands(fMin)} onChange={e => setFMin(e.target.value)} placeholder="mínimo" inputMode="numeric" style={{ flex: 1, minWidth: 0, background: 'transparent', border: 0, padding: '13px 0', fontSize: 16, color: 'var(--cream)' }} />
                 </div>
                 <span style={{ color: 'var(--muted)' }}>até</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid rgba(243,237,227,.15)', borderRadius: 12, padding: '0 14px', flex: '1 1 130px', maxWidth: 200 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid rgba(240,232,221,.15)', borderRadius: 12, padding: '0 14px', flex: '1 1 130px', maxWidth: 200 }}>
                   <span style={{ fontSize: 14, color: 'var(--muted)' }}>R$</span>
                   <input value={maskThousands(fMax)} onChange={e => setFMax(e.target.value)} placeholder="máximo" inputMode="numeric" style={{ flex: 1, minWidth: 0, background: 'transparent', border: 0, padding: '13px 0', fontSize: 16, color: 'var(--cream)' }} />
                 </div>
@@ -328,8 +330,8 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
       {/* COMO FUNCIONA */}
       <section style={{ background: 'var(--bg-2)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', padding: '40px 0' }}>
         <div className="container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 28 }}>
-          {[['1', 'Assista ao tour', 'Vídeo guiado por nós, cômodo por cômodo, sem surpresas.'],
-            ['2', 'Gostou? Chame no WhatsApp', 'Atendimento direto com quem conhece o imóvel de verdade.'],
+          {[['1', 'Assista ao tour', 'Vídeo de cada imóvel, cômodo por cômodo, sem surpresas.'],
+            ['2', 'Gostou? Me chame no WhatsApp', 'Atendimento direto comigo, do primeiro contato às chaves.'],
             ['3', 'Visite só o que vale a pena', 'Você chega na visita já decidido — sem perder tempo.']].map(([n, t, d]) => (
             <div key={n} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span className="serif" style={{ fontSize: 26, color: 'var(--accent)' }}>{n}</span>
@@ -343,9 +345,9 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
       <footer className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: isMobile ? '24px 20px 32px' : '24px 56px', color: 'var(--muted)', fontSize: 12.5 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <img src="/brand/logo-creme.png" alt="Jassiara Vasconcelos" style={{ height: 24, width: 'auto'  }} />
-          <span style={{ fontSize: 11, color: 'var(--muted)', letterSpacing: '.06em' }}>CRECI 8085</span>
+          <span style={{ fontSize: 11, color: 'var(--muted)', letterSpacing: '.06em' }}>{creci ? `CRECI ${creci}` : ''}</span>
         </span>
-        <span>João Pessoa · PB — Aluguel e venda de médio-alto padrão</span>
+        <span>João Pessoa · PB — Imóveis, temporada e oportunidades</span>
         <Link href="/admin/login" style={{ fontSize: 11.5, color: '#6b5f4e' }}>Área do corretor</Link>
       </footer>
       <FormWhats aberto={formWa} onFechar={() => setFormWa(false)} im={null} wa={wa} />
@@ -355,16 +357,16 @@ export default function PortalClient({ imoveis, heroVideo, heroVideoFile, whats 
 
 const chip = (sel) => ({
   padding: '8px 15px', borderRadius: 999, fontSize: 12.5, fontWeight: sel ? 700 : 400,
-  background: sel ? 'rgba(232,168,124,.12)' : 'transparent', color: sel ? 'var(--accent)' : 'var(--cream)',
-  border: `1px solid ${sel ? 'var(--accent)' : 'rgba(243,237,227,.2)'}`, cursor: 'pointer'
+  background: sel ? 'rgba(201,162,126,.12)' : 'transparent', color: sel ? 'var(--accent)' : 'var(--cream)',
+  border: `1px solid ${sel ? 'var(--accent)' : 'rgba(240,232,221,.2)'}`, cursor: 'pointer'
 });
 const navLink = {
   background: 'transparent', border: 0, color: 'var(--sand)', fontSize: 14, cursor: 'pointer', padding: 0, fontFamily: 'inherit'
 };
 const buscaLabel = { fontSize: 10, fontWeight: 700, letterSpacing: '.14em', color: 'var(--taupe)', marginBottom: 6 };
-const buscaField = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-2)', border: '1px solid rgba(243,237,227,.12)', borderRadius: 11, padding: '13px 12px', fontSize: 15, color: 'var(--cream)', appearance: 'none' };
+const buscaField = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-2)', border: '1px solid rgba(240,232,221,.12)', borderRadius: 11, padding: '13px 12px', fontSize: 15, color: 'var(--cream)', appearance: 'none' };
 const inp = {
-  width: '100%', maxWidth: 420, background: 'var(--bg)', border: '1px solid rgba(243,237,227,.15)',
+  width: '100%', maxWidth: 420, background: 'var(--bg)', border: '1px solid rgba(240,232,221,.15)',
   borderRadius: 12, padding: '13px 16px', fontSize: 16, color: 'var(--cream)'
 };
 function Group({ label, children }) {

@@ -5,10 +5,10 @@ export default function Loading() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-3)', display: 'flex', justifyContent: 'center' }}>
       <div style={{ width: '100%', maxWidth: 820, minHeight: '100vh', background: 'var(--bg)' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 38, height: 38, flex: 'none', borderRadius: 999, border: '1px solid rgba(243,237,227,.1)' }} />
+          <div style={{ width: 38, height: 38, flex: 'none', borderRadius: 999, border: '1px solid rgba(240,232,221,.1)' }} />
           <div style={{ flex: 1 }}>
-            <div style={{ width: 130, height: 15, borderRadius: 5, background: 'rgba(243,237,227,.09)' }} />
-            <div style={{ width: 90, height: 10, borderRadius: 4, background: 'rgba(243,237,227,.06)', marginTop: 6 }} />
+            <div style={{ width: 130, height: 15, borderRadius: 5, background: 'rgba(240,232,221,.09)' }} />
+            <div style={{ width: 90, height: 10, borderRadius: 4, background: 'rgba(240,232,221,.06)', marginTop: 6 }} />
           </div>
         </div>
         <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>

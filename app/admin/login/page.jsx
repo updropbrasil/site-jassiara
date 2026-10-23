@@ -36,7 +36,7 @@ export default function LoginPage() {
           <input type="password" value={senha} onChange={e => setSenha(e.target.value)} required style={inp} placeholder="••••••••" />
         </label>
         {erro && <div style={{ fontSize: 13, color: '#e88a7a' }}>{erro}</div>}
-        <button type="submit" disabled={loading} style={{ height: 52, borderRadius: 12, background: 'var(--accent)', color: '#2A2117', fontSize: 15, fontWeight: 700, border: 0 }}>
+        <button type="submit" disabled={loading} style={{ height: 52, borderRadius: 12, background: 'var(--accent)', color: '#22251A', fontSize: 15, fontWeight: 700, border: 0 }}>
           {loading ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
@@ -44,4 +44,4 @@ export default function LoginPage() {
   );
 }
 
-const inp = { width: '100%', background: 'var(--bg-2)', border: '1px solid rgba(243,237,227,.15)', borderRadius: 12, padding: '14px 16px', fontSize: 16, color: 'var(--cream)' };
+const inp = { width: '100%', background: 'var(--bg-2)', border: '1px solid rgba(240,232,221,.15)', borderRadius: 12, padding: '14px 16px', fontSize: 16, color: 'var(--cream)' };

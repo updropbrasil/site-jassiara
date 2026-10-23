@@ -20,7 +20,7 @@ export default async function ParceiroPage({ params }) {
     titulo: im.titulo,
     bairro: im.bairro,
     cidade: im.cidade || 'João Pessoa',
-    preco: formatPreco(im.preco_cents) + (im.finalidade === 'aluguel' ? '/mês' : ''),
+    preco: formatPreco(im.preco_cents) + (im.finalidade === 'temporada' ? '/diária' : im.finalidade === 'aluguel' ? '/mês' : ''),
     pausado: im.status !== 'ativo',
     fotos: im.fotos.map(f => ({ url: f.url, thumb: f.thumb_url || f.url })),
     temVideo: !!im.video_file_url,

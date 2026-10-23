@@ -1,4 +1,5 @@
 'use client';
+import { ehLocacao, sufixoPreco, seloImovel } from '../../../lib/secoes';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ytId, ytThumb, ytEmbed, MOBILIA_LABELS, whatsappLink, formatPreco } from '../../../lib/format';
@@ -19,21 +20,22 @@ export default function DetailClient({ im, precoFmt, parecidos = [], whats }) {
   const [origin, setOrigin] = useState('');
   const [full, setFull] = useState(false);
   // "Voltar aos imóveis" leva para a mesma busca que a pessoa tinha feito (filtros e posição na lista)
-  const [voltar, setVoltar] = useState('/#lista');
+  const [voltar, setVoltar] = useState('/imoveis#lista');
   const [isMobile, setIsMobile] = useState(false);
   // Botões de WhatsApp abrem o mini formulário (nome + WhatsApp); o SDR chama a pessoa
   const [formWa, setFormWa] = useState(false);
   const abrirForm = (e) => { e.preventDefault(); trackEvento('tocou_whats_cta'); trackEvento('abriu_form'); setFormWa(true); };
   useEffect(() => {
     setOrigin(window.location.origin);
-    setVoltar('/' + ultimaBusca() + '#lista');
+    setVoltar('/imoveis' + ultimaBusca() + '#lista');
     const mq = window.matchMedia('(max-width: 720px)');
     const on = () => setIsMobile(mq.matches);
     on(); mq.addEventListener('change', on);
     return () => mq.removeEventListener('change', on);
   }, []);
   useEffect(() => { trackViewImovel(im); }, [im?.id]);
-  const ehAluguel = im.finalidade === 'aluguel';
+  const ehAluguel = ehLocacao(im);
+  const secaoLista = im.finalidade === 'temporada' ? 'temporada' : im.finalidade === 'aluguel' ? 'anual' : 'venda';
   // capa do vídeo: aparece na hora enquanto o vídeo carrega
   const poster = (fotos[0] && (fotos[0].url || fotos[0])) || im.capa_url || undefined;
   useEffect(() => {
@@ -130,18 +132,18 @@ export default function DetailClient({ im, precoFmt, parecidos = [], whats }) {
             {/* SELO: avisa que tem fotos além do vídeo e abre a galeria em tela cheia */}
             {cur.video && fotos.length > 0 && (
               <button onClick={() => abrirFoto(0)} aria-label={`Ver as ${fotos.length} fotos`}
-                style={{ position: 'absolute', right: 12, bottom: 92, display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(31,24,18,.82)', color: '#F3EDE3', border: '1px solid rgba(243,237,227,.25)', borderRadius: 999, padding: '9px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', zIndex: 6, backdropFilter: 'blur(6px)' }}>
+                style={{ position: 'absolute', right: 12, bottom: 92, display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(33,36,25,.82)', color: '#F3EDE3', border: '1px solid rgba(240,232,221,.25)', borderRadius: 999, padding: '9px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', zIndex: 6, backdropFilter: 'blur(6px)' }}>
                 <span aria-hidden="true" style={{ fontSize: 15 }}>📷</span>{fotos.length} fotos <span aria-hidden="true" style={{ opacity: .75 }}>›</span>
               </button>
             )}
             {!cur.video && (
-              <button onClick={() => setFull(true)} style={{ position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(31,24,18,.75)', color: '#F3EDE3', border: 0, borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', zIndex: 6 }}>⤢ Tela cheia</button>
+              <button onClick={() => setFull(true)} style={{ position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(33,36,25,.75)', color: '#F3EDE3', border: 0, borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', zIndex: 6 }}>⤢ Tela cheia</button>
             )}
             {idx > 0 && <button onClick={() => go(idx - 1)} style={navBtn('left')}>‹</button>}
             {idx < slides.length - 1 && <button onClick={() => go(idx + 1)} style={navBtn('right')}>›</button>}
             <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6, zIndex: 6 }}>
               {slides.map((_, k) => (
-                <button key={k} onClick={() => go(k)} style={{ width: k === idx ? 20 : 6, height: 6, borderRadius: 999, border: 0, background: k === idx ? 'var(--accent)' : 'rgba(243,237,227,.5)', cursor: 'pointer', padding: 0 }} />
+                <button key={k} onClick={() => go(k)} style={{ width: k === idx ? 20 : 6, height: 6, borderRadius: 999, border: 0, background: k === idx ? 'var(--accent)' : 'rgba(240,232,221,.5)', cursor: 'pointer', padding: 0 }} />
               ))}
             </div>
           </div>
@@ -170,12 +172,12 @@ export default function DetailClient({ im, precoFmt, parecidos = [], whats }) {
           {/* INFO */}
           <div style={{ flex: '2 1 380px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 22 }}>
             <div>
-              <span style={{ display: 'inline-flex', background: 'rgba(31,24,18,.6)', border: '1px solid var(--line)', color: im.finalidade === 'aluguel' ? 'var(--accent)' : 'var(--green)', fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', padding: '6px 12px', borderRadius: 6, marginBottom: 14 }}>{im.finalidade === 'aluguel' ? 'ALUGUEL' : 'VENDA'}</span>
+              <span style={{ display: 'inline-flex', background: 'rgba(33,36,25,.6)', border: '1px solid var(--line)', color: seloImovel(im).cor, fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', padding: '6px 12px', borderRadius: 6, marginBottom: 14 }}>{seloImovel(im).texto}</span>
               {im.codigo && <span style={{ display: 'inline-flex', marginLeft: 8, background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--taupe)', fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', padding: '6px 12px', borderRadius: 6, marginBottom: 14 }}>CÓD. {im.codigo}</span>}
               <h1 style={{ fontSize: 32, lineHeight: 1.15, color: 'var(--cream-2)', margin: 0 }}>{im.titulo}</h1>
               <div style={{ fontSize: 15, color: 'var(--taupe)', marginTop: 8 }}>{im.bairro} · João Pessoa</div>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--accent)' }}>{precoFmt}<span style={{ fontSize: 15, fontWeight: 400, color: 'var(--taupe)' }}>{im.finalidade === 'aluguel' ? '/mês' : ''}</span></div>
+            <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--accent)' }}>{precoFmt}<span style={{ fontSize: 15, fontWeight: 400, color: 'var(--taupe)' }}>{sufixoPreco(im)}</span></div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, maxWidth: 440 }}>
               {feats.map(([label, value]) => (
@@ -202,14 +204,14 @@ export default function DetailClient({ im, precoFmt, parecidos = [], whats }) {
         <section className="container" style={{ paddingTop: isMobile ? 8 : 0, paddingBottom: isMobile ? 110 : 80 }}>
           <div style={{ borderTop: '1px solid var(--line)', paddingTop: isMobile ? 26 : 40 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: isMobile ? 14 : 22 }}>
-              <h2 style={{ fontSize: isMobile ? 21 : 26, color: 'var(--cream-2)', margin: 0 }}>{ehAluguel ? 'Outros imóveis para alugar' : 'Outros imóveis à venda'}</h2>
-              <Link href={`/?f=${ehAluguel ? 'aluguel' : 'venda'}#lista`} style={{ fontSize: 13.5, fontWeight: 700 }}>Ver todos →</Link>
+              <h2 style={{ fontSize: isMobile ? 21 : 26, color: 'var(--cream-2)', margin: 0 }}>{im.finalidade === 'temporada' ? 'Outros imóveis para temporada' : ehAluguel ? 'Outros imóveis para alugar' : 'Outros imóveis à venda'}</h2>
+              <Link href={`/imoveis?f=${secaoLista}#lista`} style={{ fontSize: 13.5, fontWeight: 700 }}>Ver todos →</Link>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fill,minmax(210px,1fr))', gap: isMobile ? 12 : 20 }}>
               {parecidos.map(p => <CardImovel key={p.id} im={p} compacto={isMobile} autoVideo umPorVez={isMobile} origin={origin} />)}
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: isMobile ? 20 : 28 }}>
-              <Link href={`/?f=${ehAluguel ? 'aluguel' : 'venda'}#lista`} style={{ border: '1px solid rgba(232,168,124,.5)', color: 'var(--accent)', padding: '12px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700 }}>
+              <Link href={`/imoveis?f=${secaoLista}#lista`} style={{ border: '1px solid rgba(201,162,126,.5)', color: 'var(--accent)', padding: '12px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700 }}>
                 {ehAluguel ? 'Ver todos os imóveis para alugar' : 'Ver todos os imóveis à venda'}
               </Link>
             </div>
@@ -220,9 +222,9 @@ export default function DetailClient({ im, precoFmt, parecidos = [], whats }) {
 
       {/* BARRA FIXA NO CELULAR: preço + WhatsApp sempre à mão */}
       {isMobile && !full && (
-        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50, background: 'rgba(31,24,18,.96)', backdropFilter: 'blur(10px)', borderTop: '1px solid rgba(243,237,227,.12)', padding: '10px 16px calc(10px + env(safe-area-inset-bottom))', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50, background: 'rgba(33,36,25,.96)', backdropFilter: 'blur(10px)', borderTop: '1px solid rgba(240,232,221,.12)', padding: '10px 16px calc(10px + env(safe-area-inset-bottom))', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ minWidth: 0, flex: '1 1 auto' }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{precoFmt}<span style={{ fontSize: 12, fontWeight: 400, color: 'var(--taupe)' }}>{ehAluguel ? '/mês' : ''}</span></div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{precoFmt}<span style={{ fontSize: 12, fontWeight: 400, color: 'var(--taupe)' }}>{sufixoPreco(im)}</span></div>
             <div style={{ fontSize: 11.5, color: 'var(--taupe)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{im.bairro}{im.codigo ? ` · ${im.codigo}` : ''}</div>
           </div>
           <a href={wa} target="_blank" rel="noopener" onClick={abrirForm}
@@ -255,16 +257,16 @@ export default function DetailClient({ im, precoFmt, parecidos = [], whats }) {
           </div>
 
           <button onClick={() => setFull(false)} aria-label="Fechar"
-            style={{ position: 'fixed', top: 16, right: 16, width: 44, height: 44, borderRadius: 999, background: 'rgba(243,237,227,.14)', color: '#F3EDE3', border: 0, fontSize: 22, cursor: 'pointer', zIndex: 102 }}>×</button>
+            style={{ position: 'fixed', top: 16, right: 16, width: 44, height: 44, borderRadius: 999, background: 'rgba(240,232,221,.14)', color: '#F3EDE3', border: 0, fontSize: 22, cursor: 'pointer', zIndex: 102 }}>×</button>
 
-          <div style={{ position: 'fixed', top: 22, left: 20, fontSize: 13, color: 'rgba(243,237,227,.7)', letterSpacing: '.04em', zIndex: 102 }}>{idx + 1} / {slides.length}</div>
+          <div style={{ position: 'fixed', top: 22, left: 20, fontSize: 13, color: 'rgba(240,232,221,.7)', letterSpacing: '.04em', zIndex: 102 }}>{idx + 1} / {slides.length}</div>
 
           {idx > 0 && <button onClick={() => go(idx - 1)} style={fullNav('left')}>‹</button>}
           {idx < slides.length - 1 && <button onClick={() => go(idx + 1)} style={fullNav('right')}>›</button>}
 
-          <div style={{ position: 'fixed', bottom: 18, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, padding: '8px 10px', background: 'rgba(31,24,18,.6)', borderRadius: 12, maxWidth: 'calc(100vw - 40px)', overflowX: 'auto', zIndex: 102 }}>
+          <div style={{ position: 'fixed', bottom: 18, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, padding: '8px 10px', background: 'rgba(33,36,25,.6)', borderRadius: 12, maxWidth: 'calc(100vw - 40px)', overflowX: 'auto', zIndex: 102 }}>
             {slides.map((s, k) => (
-              <button key={k} onClick={() => go(k)} style={{ width: 44, height: 44, flex: 'none', borderRadius: 8, border: k === idx ? '2px solid var(--accent)' : '2px solid transparent', padding: 0, overflow: 'hidden', background: s.video ? '#2A2117' : `url("${s.thumb || s.bg}") center/cover`, color: '#F3EDE3', fontSize: 14, cursor: 'pointer' }}>{s.video ? '▶' : ''}</button>
+              <button key={k} onClick={() => go(k)} style={{ width: 44, height: 44, flex: 'none', borderRadius: 8, border: k === idx ? '2px solid var(--accent)' : '2px solid transparent', padding: 0, overflow: 'hidden', background: s.video ? '#22251A' : `url("${s.thumb || s.bg}") center/cover`, color: '#F3EDE3', fontSize: 14, cursor: 'pointer' }}>{s.video ? '▶' : ''}</button>
             ))}
           </div>
         </div>
@@ -276,13 +278,13 @@ export default function DetailClient({ im, precoFmt, parecidos = [], whats }) {
 
 const fullNav = (side) => ({
   position: 'fixed', [side]: 14, top: '50%', transform: 'translateY(-50%)',
-  width: 52, height: 52, borderRadius: 999, background: 'rgba(243,237,227,.14)', color: '#F3EDE3',
+  width: 52, height: 52, borderRadius: 999, background: 'rgba(240,232,221,.14)', color: '#F3EDE3',
   border: 0, fontSize: 26, cursor: 'pointer', zIndex: 101
 });
 
 const navBtn = (side) => ({
   position: 'absolute', [side]: 10, top: '50%', transform: 'translateY(-50%)',
-  width: 44, height: 44, borderRadius: 999, background: 'rgba(31,24,18,.75)', color: '#F3EDE3',
+  width: 44, height: 44, borderRadius: 999, background: 'rgba(33,36,25,.75)', color: '#F3EDE3',
   border: 0, fontSize: 22, cursor: 'pointer', zIndex: 5
 });
 
@@ -303,7 +305,7 @@ function Descricao({ texto }) {
           <ul className="desc-itens" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '8px 18px' }}>
             {visiveis.map((t) => (
               <li key={t} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 14.5, color: 'var(--cream-2)', lineHeight: 1.4 }}>
-                <span aria-hidden="true" style={{ flex: '0 0 18px', height: 18, marginTop: 1, borderRadius: 999, background: 'rgba(232,168,124,.16)', color: 'var(--accent)', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 800 }}>✓</span>
+                <span aria-hidden="true" style={{ flex: '0 0 18px', height: 18, marginTop: 1, borderRadius: 999, background: 'rgba(201,162,126,.16)', color: 'var(--accent)', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 800 }}>✓</span>
                 <span>{t}</span>
               </li>
             ))}
@@ -340,7 +342,7 @@ function Localizacao({ im }) {
         <iframe src={src} title={`Localização aproximada — ${im.bairro}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade"
           style={{ width: '100%', height: 230, border: 0, borderRadius: 10, marginTop: 4, background: 'var(--bg)' }} />
       ) : (
-        <button onClick={() => setMapa(true)} style={{ marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'rgba(232,168,124,.1)', color: 'var(--accent)', border: '1px solid rgba(232,168,124,.35)', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+        <button onClick={() => setMapa(true)} style={{ marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'rgba(201,162,126,.1)', color: 'var(--accent)', border: '1px solid rgba(201,162,126,.35)', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           🗺️ Ver a região no mapa
         </button>
       )}

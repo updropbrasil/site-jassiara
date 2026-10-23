@@ -1,4 +1,5 @@
 'use client';
+import { seloImovel, sufixoPreco } from '../lib/secoes';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { MOBILIA_LABELS, ytId, ytThumb, ytEmbed, formatPreco } from '../lib/format';
@@ -61,16 +62,16 @@ export default function CardImovel({ im, compacto = false, autoVideo = true, umP
           <video src={im.video_file_url} muted loop playsInline autoPlay preload="metadata"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
         )}
-        <span style={{ position: 'absolute', top: compacto ? 8 : 12, left: compacto ? 8 : 12, background: 'rgba(31,24,18,.85)', color: im.finalidade === 'aluguel' ? 'var(--accent)' : 'var(--green)', fontSize: compacto ? 9.5 : 10.5, fontWeight: 700, letterSpacing: '.12em', padding: compacto ? '4px 7px' : '5px 10px', borderRadius: 6 }}>
-          {im.finalidade === 'aluguel' ? 'ALUGUEL' : 'VENDA'}
+        <span style={{ position: 'absolute', top: compacto ? 8 : 12, left: compacto ? 8 : 12, background: 'rgba(33,36,25,.85)', color: seloImovel(im).cor, fontSize: compacto ? 9.5 : 10.5, fontWeight: 700, letterSpacing: '.12em', padding: compacto ? '4px 7px' : '5px 10px', borderRadius: 6 }}>
+          {seloImovel(im).texto}
         </span>
         {(vid || nativo) && (
-          <span style={{ position: 'absolute', bottom: compacto ? 8 : 12, left: compacto ? 8 : 12, display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(31,24,18,.72)', color: 'var(--cream)', fontSize: compacto ? 10 : 11, padding: compacto ? '4px 7px' : '5px 9px', borderRadius: 6 }}>▶ {compacto ? 'Tour' : 'Tour em vídeo'}</span>
+          <span style={{ position: 'absolute', bottom: compacto ? 8 : 12, left: compacto ? 8 : 12, display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(33,36,25,.72)', color: 'var(--cream)', fontSize: compacto ? 10 : 11, padding: compacto ? '4px 7px' : '5px 9px', borderRadius: 6 }}>▶ {compacto ? 'Tour' : 'Tour em vídeo'}</span>
         )}
       </div>
       <div style={{ padding: compacto ? '10px 11px 12px' : '16px 18px 18px' }}>
         <div style={{ fontSize: compacto ? 16.5 : 21, fontWeight: 700, color: 'var(--cream-2)', letterSpacing: '-.01em' }}>
-          {formatPreco(im.preco_cents)}<span style={{ fontSize: compacto ? 11.5 : 13, fontWeight: 400, color: 'var(--taupe)' }}>{im.finalidade === 'aluguel' ? '/mês' : ''}</span>
+          {formatPreco(im.preco_cents)}<span style={{ fontSize: compacto ? 11.5 : 13, fontWeight: 400, color: 'var(--taupe)' }}>{sufixoPreco(im)}</span>
         </div>
         {compacto ? (
           <>

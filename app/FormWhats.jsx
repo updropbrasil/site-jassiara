@@ -107,7 +107,7 @@ export default function FormWhats({ aberto, onFechar, im, wa }) {
     }
   };
 
-  const campo = { width: '100%', background: '#fff', color: '#1F1812', border: '1px solid rgba(31,24,18,.18)', borderRadius: 10, padding: '13px 14px', fontSize: 16, outline: 'none' };
+  const campo = { width: '100%', background: '#fff', color: '#2B2E22', border: '1px solid rgba(33,36,25,.18)', borderRadius: 10, padding: '13px 14px', fontSize: 16, outline: 'none' };
   const rotulo = { display: 'block', fontSize: 13, fontWeight: 600, color: '#5b4d3d', marginBottom: 6 };
   const primeiro = nome.trim().split(' ')[0];
 
@@ -115,7 +115,7 @@ export default function FormWhats({ aberto, onFechar, im, wa }) {
     <div role="dialog" aria-modal="true" aria-label="Falar no WhatsApp" onClick={onFechar}
       style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(15,11,8,.72)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: 0 }}>
       <div onClick={(e) => e.stopPropagation()} className="form-whats"
-        style={{ width: '100%', maxWidth: 440, background: '#F7F2EA', color: '#1F1812', borderRadius: '18px 18px 0 0', padding: '22px 20px calc(22px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,.35)', position: 'relative' }}>
+        style={{ width: '100%', maxWidth: 440, background: '#F7F2EA', color: '#2B2E22', borderRadius: '18px 18px 0 0', padding: '22px 20px calc(22px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(0,0,0,.35)', position: 'relative' }}>
         <button onClick={onFechar} aria-label="Fechar" style={{ position: 'absolute', top: 10, right: 12, background: 'none', border: 0, fontSize: 26, lineHeight: 1, color: '#7a6c59', cursor: 'pointer', padding: 6 }}>×</button>
 
         {ok ? (
@@ -125,7 +125,7 @@ export default function FormWhats({ aberto, onFechar, im, wa }) {
             <p style={{ fontSize: 14.5, color: '#5b4d3d', lineHeight: 1.5, margin: '8px 0 18px' }}>
               Em instantes você recebe nossa mensagem no WhatsApp{im?.codigo ? ` sobre o ${im.codigo}` : ''}.
             </p>
-            <button onClick={onFechar} style={{ width: '100%', background: '#1F1812', color: '#F7F2EA', border: 0, borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>Continuar vendo o imóvel</button>
+            <button onClick={onFechar} style={{ width: '100%', background: '#2B2E22', color: '#F7F2EA', border: 0, borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>Continuar vendo o imóvel</button>
             {wa && <a href={wa} target="_blank" rel="noopener" style={{ display: 'block', marginTop: 12, fontSize: 13.5, color: '#2b6b45', fontWeight: 700 }}>Prefere chamar agora? Abrir o WhatsApp</a>}
           </div>
         ) : (

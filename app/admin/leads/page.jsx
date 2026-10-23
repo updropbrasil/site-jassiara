@@ -23,7 +23,7 @@ export default async function LeadsPage() {
     <LeadsClient
       initialLeads={rLeads.data || []}
       initialWebhook={c.lead_webhook_url || ''}
-      codigoExemplo={rUm.data?.codigo || 'JDA-0000'}
+      codigoExemplo={rUm.data?.codigo || 'JSA-000'}
       slugExemplo={rUm.data?.slug || ''}
     />
   );

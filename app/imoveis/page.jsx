@@ -39,7 +39,12 @@ async function getHero() {
   return { heroVideo: data?.youtube_url || '', heroVideoFile };
 }
 
+async function getCreci() {
+  const { data } = await createClient().from('site_config').select('value').eq('key', 'presite_creci').maybeSingle();
+  return (data?.value || '').trim();
+}
+
 export default async function HomePage() {
-  const [imoveis, hero, whats] = await Promise.all([getImoveis(), getHero(), whatsappDoSite(createClient())]);
-  return <PortalClient imoveis={imoveis} heroVideo={hero.heroVideo} heroVideoFile={hero.heroVideoFile} whats={whats} />;
+  const [imoveis, hero, whats, creci] = await Promise.all([getImoveis(), getHero(), whatsappDoSite(createClient()), getCreci()]);
+  return <PortalClient imoveis={imoveis} heroVideo={hero.heroVideo} heroVideoFile={hero.heroVideoFile} whats={whats} creci={creci} />;
 }

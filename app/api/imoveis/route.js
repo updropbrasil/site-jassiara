@@ -1,5 +1,5 @@
 // Consulta de imóveis para a IA (tool do n8n via HTTP Request).
-//   GET https://jasondias.com.br/api/imoveis?k=SENHA&finalidade=aluguel&bairro=cabo+branco&max=7000
+//   GET https://jassiara.com.br/api/imoveis?k=SENHA&finalidade=aluguel&bairro=cabo+branco&max=7000
 //
 // Devolve só imóveis ativos, em texto pronto para a IA usar, sem endereço
 // exato (a rua nunca vai para o cliente antes da visita agendada).
@@ -41,7 +41,7 @@ export async function GET(req) {
   const codigoQ = searchParams.get('codigo');
   if (codigoQ) q = supabase.from('imoveis').select('*').ilike('codigo', `%${codigoQ.replace(/[^a-z0-9]/gi, '').replace(/^([a-z]+)(\d+)$/i, '$1%$2')}%`);
 
-  if (finalidade === 'aluguel' || finalidade === 'venda') q = q.eq('finalidade', finalidade);
+  if (finalidade === 'aluguel' || finalidade === 'venda' || finalidade === 'temporada') q = q.eq('finalidade', finalidade);
   if (min) q = q.gte('preco_cents', min * 100);
   if (max) q = q.lte('preco_cents', max * 100);
   if (quartos) q = q.gte('quartos', quartos);
@@ -68,7 +68,7 @@ export async function GET(req) {
     categoria: i.categoria,
     bairro: i.bairro,
     preco: i.preco_cents ? i.preco_cents / 100 : null,
-    preco_formatado: i.preco_cents ? `${formatPreco(i.preco_cents)}${i.finalidade === 'aluguel' ? '/mês' : ''}` : null,
+    preco_formatado: i.preco_cents ? `${formatPreco(i.preco_cents)}${i.finalidade === 'temporada' ? '/diária' : i.finalidade === 'aluguel' ? '/mês' : ''}` : null,
     condominio: i.condominio_tipo === 'isento' ? 'Isento' : (i.condominio_tipo === 'incluso' ? 'Incluso no aluguel' : (i.condominio_tipo === 'nao_informado' ? null : (i.condominio_cents ? i.condominio_cents / 100 : null))),
     quartos: i.quartos ?? null,
     suites: i.suites ?? null,
@@ -86,7 +86,7 @@ export async function GET(req) {
   const contexto_ia = imoveis.length
     ? imoveis.map(i => [
       `${i.codigo || '—'} · ${i.titulo}`,
-      `  ${i.finalidade === 'aluguel' ? 'Aluguel' : 'Venda'}: ${i.preco_formatado || 'valor não informado'}`
+      `  ${i.finalidade === 'temporada' ? 'Temporada' : i.finalidade === 'aluguel' ? 'Aluguel' : 'Venda'}: ${i.preco_formatado || 'valor não informado'}`
       + (i.condominio ? ` + condomínio ${typeof i.condominio === 'number' ? formatPreco(i.condominio * 100) : i.condominio}` : ''),
       `  ${i.bairro} · ${[i.quartos ? `${i.quartos} quartos` : null, i.suites ? `${i.suites} suítes` : null, i.area_m2 ? `${i.area_m2} m²` : null, i.vagas ? `${i.vagas} vagas` : null, i.mobilia].filter(Boolean).join(' · ')}`,
       i.caracteristicas.length ? `  Lazer: ${i.caracteristicas.slice(0, 8).join(', ')}` : null,

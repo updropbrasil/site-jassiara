@@ -1,18 +1,18 @@
 :root {
   --wa: #25D366;
   --wa-texto: #0B2915;
-  --bg: #1F1812;
-  --bg-2: #2A2117;
-  --bg-3: #151009;
-  --cream: #F3EDE3;
-  --cream-2: #FAF7F2;
-  --sand: #D8C9B2;
-  --taupe: #B9A488;
-  --muted: #9c8d77;
-  --accent: #E8A87C;
-  --accent-hover: #f0c09e;
-  --green: #A8C08F;
-  --line: rgba(243,237,227,.09);
+  --bg: #2B2E22;
+  --bg-2: #353929;
+  --bg-3: #202318;
+  --cream: #F0E8DD;
+  --cream-2: #F8F3EB;
+  --sand: #DDD5C6;
+  --taupe: #BDB49F;
+  --muted: #A09A84;
+  --accent: #C9A27E;
+  --accent-hover: #D9BC9C;
+  --green: #B9C79A;
+  --line: rgba(240,232,221,.10);
 }
 
 * { box-sizing: border-box; }
@@ -28,7 +28,7 @@ a { color: var(--accent); text-decoration: none; }
 a:hover { color: var(--accent-hover); }
 img { display: block; max-width: 100%; }
 input, select, button, textarea { font-family: inherit; }
-input:focus, textarea:focus { outline: 2px solid rgba(232,168,124,.5); }
+input:focus, textarea:focus { outline: 2px solid rgba(201,162,126,.5); }
 button { cursor: pointer; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }

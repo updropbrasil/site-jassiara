@@ -20,8 +20,8 @@ export default function ParceiroClient({ token, im }) {
 
   const btn = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-    padding: '14px 18px', borderRadius: 12, fontSize: 14.5, fontWeight: 700, border: '1px solid rgba(232,168,124,.4)',
-    background: 'rgba(232,168,124,.14)', color: 'var(--accent)', textDecoration: 'none', flex: '1 1 180px',
+    padding: '14px 18px', borderRadius: 12, fontSize: 14.5, fontWeight: 700, border: '1px solid rgba(201,162,126,.4)',
+    background: 'rgba(201,162,126,.14)', color: 'var(--accent)', textDecoration: 'none', flex: '1 1 180px',
   };
 
   return (
@@ -52,7 +52,7 @@ export default function ParceiroClient({ token, im }) {
           <a href={im.youtube} target="_blank" rel="noopener" style={btn}>Ver vídeo no YouTube</a>
         )}
         {im.texto && (
-          <button onClick={copiar} style={{ ...btn, background: copiado ? 'rgba(168,192,143,.18)' : 'var(--cream)', color: copiado ? 'var(--green)' : '#2A2117', border: '1px solid transparent' }}>
+          <button onClick={copiar} style={{ ...btn, background: copiado ? 'rgba(168,192,143,.18)' : 'var(--cream)', color: copiado ? 'var(--green)' : '#22251A', border: '1px solid transparent' }}>
             {copiado ? '✓ Copiado' : 'Copiar descrição'}
           </button>
         )}
@@ -87,7 +87,7 @@ export default function ParceiroClient({ token, im }) {
         <div onClick={() => setAberta(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12, zIndex: 50 }}>
           <img src={im.fotos[aberta].url} alt="" style={{ maxWidth: '100%', maxHeight: '88vh', borderRadius: 10 }} />
           <a href={im.fotos[aberta].url} target="_blank" rel="noopener" onClick={e => e.stopPropagation()}
-            style={{ position: 'absolute', bottom: 18, left: '50%', transform: 'translateX(-50%)', padding: '10px 16px', borderRadius: 999, background: 'var(--cream)', color: '#2A2117', fontSize: 13, fontWeight: 700 }}>
+            style={{ position: 'absolute', bottom: 18, left: '50%', transform: 'translateX(-50%)', padding: '10px 16px', borderRadius: 999, background: 'var(--cream)', color: '#22251A', fontSize: 13, fontWeight: 700 }}>
             Abrir foto {aberta + 1} de {im.fotos.length}
           </a>
         </div>

@@ -28,11 +28,11 @@ export default function RastreamentoClient({ inicial }) {
     setMsg(error ? 'Não salvou: ' + error.message : 'Salvo ✓ — o site passa a usar em até 5 minutos, sem redeploy.');
   }
 
-  const caixa = { background: 'var(--bg)', border: '1px solid rgba(243,237,227,.15)', borderRadius: 10, padding: '13px 14px', color: 'var(--cream)', fontSize: 15, width: '100%' };
+  const caixa = { background: 'var(--bg)', border: '1px solid rgba(240,232,221,.15)', borderRadius: 10, padding: '13px 14px', color: 'var(--cream)', fontSize: 15, width: '100%' };
   return (
     <main style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--cream)' }}>
       <header style={{ padding: '18px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Link href="/admin" style={{ display: 'flex', width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 999, border: '1px solid rgba(243,237,227,.15)', color: 'var(--sand)' }}>‹</Link>
+        <Link href="/admin" style={{ display: 'flex', width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 999, border: '1px solid rgba(240,232,221,.15)', color: 'var(--sand)' }}>‹</Link>
         <strong style={{ fontSize: 17 }}>Rastreamento</strong>
       </header>
       <div style={{ maxWidth: 560, padding: '20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -46,7 +46,7 @@ export default function RastreamentoClient({ inicial }) {
             <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>{c.ajuda}</span>
           </label>
         ))}
-        <button onClick={salvar} disabled={salvando} style={{ padding: '14px 20px', borderRadius: 10, background: 'var(--accent)', color: '#2A2117', fontSize: 14, fontWeight: 700, border: 0, opacity: salvando ? 0.6 : 1 }}>
+        <button onClick={salvar} disabled={salvando} style={{ padding: '14px 20px', borderRadius: 10, background: 'var(--accent)', color: '#22251A', fontSize: 14, fontWeight: 700, border: 0, opacity: salvando ? 0.6 : 1 }}>
           {salvando ? 'Salvando…' : 'Salvar'}
         </button>
         {msg && <div style={{ fontSize: 13, color: msg.startsWith('Salvo') ? 'var(--green)' : '#c88a7a' }}>{msg}</div>}

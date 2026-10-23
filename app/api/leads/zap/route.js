@@ -1,5 +1,5 @@
 // Recebimento de leads do Grupo OLX (Zap, VivaReal, OLX).
-//   https://jasondias.com.br/api/leads/zap?k=SENHA
+//   https://jassiara.com.br/api/leads/zap?k=SENHA
 //
 // Regras da documentação oficial que este endpoint cumpre:
 //  · sucesso = qualquer 2xx; fora disso eles retentam 3× e guardam 14 dias
@@ -36,7 +36,7 @@ export function montarPayload({ body, codigo, imovel, telefone }) {
   const tel = String(telefone || '').replace(/\D/g, '');
   const nome = body.name || '';
   const link = imovel?.slug ? `${SITE_URL}/imovel/${imovel.slug}` : '';
-  const msg = `Olá ${nome.split(' ')[0]}! Aqui é da Jason Dias Imóveis. Vi seu interesse${codigo ? ` no imóvel ${codigo}` : ''}${imovel ? ` — ${imovel.titulo}` : ''}.${link ? ` Segue o tour em vídeo: ${link}` : ''} Posso te ajudar?`;
+  const msg = `Olá ${nome.split(' ')[0]}! Aqui é a Jassiara Vasconcelos. Vi seu interesse${codigo ? ` no imóvel ${codigo}` : ''}${imovel ? ` — ${imovel.titulo}` : ''}.${link ? ` Segue o tour em vídeo: ${link}` : ''} Posso te ajudar?`;
 
   // 'Isento' | null (não informado) | valor em reais
   const taxa = (tipo, cents) => tipo === 'isento' ? 'Isento'

@@ -28,7 +28,7 @@ const CAMPOS = [
   { key: 'presite_creci', label: 'CRECI', exemplo: 'PB 0000' },
 ];
 
-const caixa = { background: '#120B10', border: '1px solid rgba(243,237,227,.15)', borderRadius: 10, padding: '12px 13px', color: 'var(--cream)', fontSize: 15, width: '100%' };
+const caixa = { background: '#1F2218', border: '1px solid rgba(240,232,221,.15)', borderRadius: 10, padding: '12px 13px', color: 'var(--cream)', fontSize: 15, width: '100%' };
 const rotuloSt = { fontSize: 13, fontWeight: 700, color: 'var(--cream-2)' };
 const cartao = { background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 14, padding: 14 };
 
@@ -109,7 +109,7 @@ export default function PaginaInicialClient({ cfgInicial, botoesIniciais }) {
   return (
     <main style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--cream)', paddingBottom: 96 }}>
       <header style={{ position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg)', padding: '14px 16px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Link href="/admin" style={{ display: 'flex', width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 999, border: '1px solid rgba(243,237,227,.15)', color: 'var(--sand)' }}>‹</Link>
+        <Link href="/admin" style={{ display: 'flex', width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 999, border: '1px solid rgba(240,232,221,.15)', color: 'var(--sand)' }}>‹</Link>
         <strong style={{ fontSize: 17, flex: 1 }}>Página inicial</strong>
         <a href="/" target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, fontWeight: 700 }}>Ver página ↗</a>
       </header>
@@ -121,7 +121,7 @@ export default function PaginaInicialClient({ cfgInicial, botoesIniciais }) {
             {[['presite_retrato_url', 'Sua foto (sem fundo)'], ['presite_logo_url', 'Logo']].map(([k, l]) => (
               <label key={k} style={{ display: 'flex', flexDirection: 'column', gap: 6, cursor: 'pointer' }}>
                 <span style={rotuloSt}>{l}</span>
-                <div style={{ aspectRatio: k === 'presite_retrato_url' ? '3/4' : '1/1', borderRadius: 12, border: '1px dashed rgba(243,237,227,.25)', background: cfg[k] ? `center/contain no-repeat url(${cfg[k]}), #F0E8DD` : '#120B10', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, color: 'var(--muted)', textAlign: 'center', padding: 8 }}>
+                <div style={{ aspectRatio: k === 'presite_retrato_url' ? '3/4' : '1/1', borderRadius: 12, border: '1px dashed rgba(240,232,221,.25)', background: cfg[k] ? `center/contain no-repeat url(${cfg[k]}), #F0E8DD` : '#1F2218', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, color: 'var(--muted)', textAlign: 'center', padding: 8 }}>
                   {enviando === k ? 'Enviando…' : cfg[k] ? '' : 'Toque para escolher'}
                 </div>
                 <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => enviarImagem(k, e.target.files?.[0])} />
@@ -180,7 +180,7 @@ export default function PaginaInicialClient({ cfgInicial, botoesIniciais }) {
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                         {LISTA_ICONES.map(([nome, legenda]) => (
                           <button key={nome} type="button" title={legenda} aria-label={legenda} onClick={() => setB(b.id, 'icone', nome)}
-                            style={{ width: 42, height: 42, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: b.icone === nome ? '2px solid var(--accent)' : '1px solid rgba(243,237,227,.15)', background: b.icone === nome ? 'rgba(232,168,124,.15)' : '#120B10', color: 'var(--cream)' }}>
+                            style={{ width: 42, height: 42, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: b.icone === nome ? '2px solid var(--accent)' : '1px solid rgba(240,232,221,.15)', background: b.icone === nome ? 'rgba(201,162,126,.15)' : '#1F2218', color: 'var(--cream)' }}>
                             <IconeServico nome={nome} size={19} />
                           </button>
                         ))}
@@ -228,14 +228,14 @@ export default function PaginaInicialClient({ cfgInicial, botoesIniciais }) {
               </div>
             );
           })}
-          <button onClick={novoBotao} style={{ padding: '13px', borderRadius: 12, border: '1px dashed rgba(232,168,124,.5)', background: 'none', color: 'var(--accent)', fontWeight: 700, fontSize: 14 }}>+ Novo botão</button>
+          <button onClick={novoBotao} style={{ padding: '13px', borderRadius: 12, border: '1px dashed rgba(201,162,126,.5)', background: 'none', color: 'var(--accent)', fontWeight: 700, fontSize: 14 }}>+ Novo botão</button>
         </section>
       </div>
 
       <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, padding: '12px 16px calc(12px + env(safe-area-inset-bottom))', background: 'linear-gradient(180deg, transparent, var(--bg) 35%)' }}>
         <div style={{ maxWidth: 620, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {msg && <div style={{ fontSize: 13, textAlign: 'center', color: msg.includes('✓') || msg.startsWith('Imagem') ? 'var(--green)' : '#c88a7a' }}>{msg}</div>}
-          <button onClick={salvar} disabled={salvando} style={{ padding: '15px 20px', borderRadius: 12, background: 'var(--accent)', color: '#2A2117', fontSize: 15, fontWeight: 700, border: 0, opacity: salvando ? 0.6 : 1 }}>
+          <button onClick={salvar} disabled={salvando} style={{ padding: '15px 20px', borderRadius: 12, background: 'var(--accent)', color: '#22251A', fontSize: 15, fontWeight: 700, border: 0, opacity: salvando ? 0.6 : 1 }}>
             {salvando ? 'Salvando…' : 'Salvar e publicar'}
           </button>
         </div>

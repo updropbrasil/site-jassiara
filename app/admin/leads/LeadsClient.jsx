@@ -121,8 +121,8 @@ export default function LeadsClient({ initialLeads, initialWebhook, codigoExempl
           origem: 'Grupo OLX', canal: 'CLICK_WHATSAPP', temperatura: 'Alta', transacao: 'RENT',
           lead_certo: false,
           nome: 'Cliente Teste', telefone: '11965236812', whatsapp: '5511965236812',
-          whatsapp_link: `https://wa.me/5511965236812?text=${encodeURIComponent('Olá Cliente! Aqui é da Jason Dias Imóveis. Vi seu interesse no imóvel ' + codigoExemplo + '. Posso te ajudar?')}`,
-          mensagem_sugerida: `Olá Cliente! Aqui é da Jason Dias Imóveis. Vi seu interesse no imóvel ${codigoExemplo} — Apartamento vista-mar no Cabo Branco. Posso te ajudar?`,
+          whatsapp_link: `https://wa.me/5583986683725?text=${encodeURIComponent('Olá Cliente! Aqui é a Jassiara Vasconcelos. Vi seu interesse no imóvel ' + codigoExemplo + '. Posso te ajudar?')}`,
+          mensagem_sugerida: `Olá Cliente! Aqui é a Jassiara Vasconcelos. Vi seu interesse no imóvel ${codigoExemplo} — Apartamento vista-mar no Cabo Branco. Posso te ajudar?`,
           email: 'teste@exemplo.com', mensagem_lead: 'Olá, gostaria de mais informações sobre este imóvel.',
           codigo_imovel: codigoExemplo,
           imovel: imovelTeste,
@@ -165,8 +165,8 @@ export default function LeadsClient({ initialLeads, initialWebhook, codigoExempl
     <div style={{ minHeight: '100vh', background: 'var(--bg-3)', display: 'flex', justifyContent: 'center' }}>
       <div style={{ width: '100%', maxWidth: 780, minHeight: '100vh', background: 'var(--bg)' }}>
 
-        <header style={{ position: 'sticky', top: 0, zIndex: 20, background: 'rgba(31,24,18,.95)', backdropFilter: 'blur(8px)', padding: '14px 18px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/admin" title="Voltar" style={{ display: 'flex', width: 36, height: 36, flex: 'none', alignItems: 'center', justifyContent: 'center', borderRadius: 999, border: '1px solid rgba(243,237,227,.15)', color: 'var(--sand)', fontSize: 17 }}>←</Link>
+        <header style={{ position: 'sticky', top: 0, zIndex: 20, background: 'rgba(33,36,25,.95)', backdropFilter: 'blur(8px)', padding: '14px 18px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link href="/admin" title="Voltar" style={{ display: 'flex', width: 36, height: 36, flex: 'none', alignItems: 'center', justifyContent: 'center', borderRadius: 999, border: '1px solid rgba(240,232,221,.15)', color: 'var(--sand)', fontSize: 17 }}>←</Link>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="serif" style={{ fontSize: 17, color: 'var(--cream-2)' }}>Leads recebidos</div>
             <div style={{ fontSize: 11.5, color: falhas.length ? '#c88a7a' : 'var(--taupe)' }}>
@@ -174,7 +174,7 @@ export default function LeadsClient({ initialLeads, initialWebhook, codigoExempl
             </div>
           </div>
           <button onClick={() => setVerConfig(v => !v)} title="Configuração"
-            style={{ width: 36, height: 36, flex: 'none', borderRadius: 999, border: '1px solid rgba(243,237,227,.15)', background: 'transparent', color: 'var(--sand)', fontSize: 15 }}>⚙</button>
+            style={{ width: 36, height: 36, flex: 'none', borderRadius: 999, border: '1px solid rgba(240,232,221,.15)', background: 'transparent', color: 'var(--sand)', fontSize: 15 }}>⚙</button>
         </header>
 
         <div style={{ padding: '14px 18px 60px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -185,10 +185,10 @@ export default function LeadsClient({ initialLeads, initialWebhook, codigoExempl
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.12em', color: 'var(--taupe)', marginBottom: 7 }}>PARA ONDE MANDAMOS O LEAD (n8n)</div>
                 <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
                   <input value={hook} onChange={e => { setHook(e.target.value); setHookSalvo(false); }} placeholder="https://n8n.seudominio.com/webhook/lead-jason"
-                    style={{ flex: 1, minWidth: 190, background: 'var(--bg)', border: '1px solid rgba(243,237,227,.15)', borderRadius: 9, padding: '11px 13px', fontSize: 14, color: 'var(--cream)' }} />
-                  <button onClick={salvarHook} style={{ padding: '11px 15px', borderRadius: 9, background: 'var(--accent)', color: '#2A2117', fontSize: 12.5, fontWeight: 700, border: 0 }}>{hookSalvo ? 'Salvo ✓' : 'Salvar'}</button>
+                    style={{ flex: 1, minWidth: 190, background: 'var(--bg)', border: '1px solid rgba(240,232,221,.15)', borderRadius: 9, padding: '11px 13px', fontSize: 14, color: 'var(--cream)' }} />
+                  <button onClick={salvarHook} style={{ padding: '11px 15px', borderRadius: 9, background: 'var(--accent)', color: '#22251A', fontSize: 12.5, fontWeight: 700, border: 0 }}>{hookSalvo ? 'Salvo ✓' : 'Salvar'}</button>
                   <button onClick={testarHook} disabled={!hook.trim()}
-                    style={{ padding: '11px 14px', borderRadius: 9, border: '1px solid rgba(243,237,227,.22)', background: 'transparent', fontSize: 12.5, opacity: hook.trim() ? 1 : 0.4, color: testando === 'ok' ? 'var(--green)' : testando === 'erro' ? '#c88a7a' : 'var(--sand)' }}>
+                    style={{ padding: '11px 14px', borderRadius: 9, border: '1px solid rgba(240,232,221,.22)', background: 'transparent', fontSize: 12.5, opacity: hook.trim() ? 1 : 0.4, color: testando === 'ok' ? 'var(--green)' : testando === 'erro' ? '#c88a7a' : 'var(--sand)' }}>
                     {testando === 'enviando' ? '…' : testando === 'ok' ? 'Enviado ✓' : testando === 'erro' ? 'Falhou' : 'Testar'}
                   </button>
                 </div>
@@ -197,15 +197,15 @@ export default function LeadsClient({ initialLeads, initialWebhook, codigoExempl
                 <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.12em', color: 'var(--taupe)', marginBottom: 7 }}>ENDEREÇO QUE O PORTAL CHAMA</div>
                 <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
                   <input readOnly value={webhookUrl} onFocus={e => e.target.select()}
-                    style={{ flex: 1, minWidth: 190, background: 'var(--bg)', border: '1px solid rgba(243,237,227,.12)', borderRadius: 9, padding: '11px 13px', fontSize: 12.5, color: 'var(--taupe)' }} />
+                    style={{ flex: 1, minWidth: 190, background: 'var(--bg)', border: '1px solid rgba(240,232,221,.12)', borderRadius: 9, padding: '11px 13px', fontSize: 12.5, color: 'var(--taupe)' }} />
                   <button onClick={() => { navigator.clipboard?.writeText(webhookUrl); setCopiado(true); setTimeout(() => setCopiado(false), 1800); }}
-                    style={{ padding: '11px 15px', borderRadius: 9, border: '1px solid rgba(243,237,227,.22)', background: 'transparent', color: copiado ? 'var(--green)' : 'var(--sand)', fontSize: 12.5 }}>{copiado ? 'Copiado ✓' : 'Copiar'}</button>
+                    style={{ padding: '11px 15px', borderRadius: 9, border: '1px solid rgba(240,232,221,.22)', background: 'transparent', color: copiado ? 'var(--green)' : 'var(--sand)', fontSize: 12.5 }}>{copiado ? 'Copiado ✓' : 'Copiar'}</button>
                 </div>
                 <div style={{ display: 'flex', gap: 7, marginTop: 9, flexWrap: 'wrap' }}>
                   <input value={testTel} onChange={e => setTestTel(e.target.value.replace(/\D/g, ''))} placeholder="DDD + número, ex.: 11965236812" inputMode="numeric"
-                    style={{ flex: 1, minWidth: 150, background: 'var(--bg)', border: '1px solid rgba(243,237,227,.15)', borderRadius: 9, padding: '10px 13px', fontSize: 13, color: 'var(--cream)' }} />
+                    style={{ flex: 1, minWidth: 150, background: 'var(--bg)', border: '1px solid rgba(240,232,221,.15)', borderRadius: 9, padding: '10px 13px', fontSize: 13, color: 'var(--cream)' }} />
                   <select value={testCanal} onChange={e => setTestCanal(e.target.value)}
-                    style={{ flex: 1, minWidth: 150, background: 'var(--bg)', border: '1px solid rgba(243,237,227,.15)', borderRadius: 9, padding: '10px 13px', fontSize: 13, color: 'var(--cream)', appearance: 'auto' }}>
+                    style={{ flex: 1, minWidth: 150, background: 'var(--bg)', border: '1px solid rgba(240,232,221,.15)', borderRadius: 9, padding: '10px 13px', fontSize: 13, color: 'var(--cream)', appearance: 'auto' }}>
                     <option value="CLICK_WHATSAPP">WhatsApp (clique no botão)</option>
                     <option value="CONTACT_FORM">Formulário do portal</option>
                     <option value="CONTACT_CHAT">Chat do portal</option>
@@ -216,7 +216,7 @@ export default function LeadsClient({ initialLeads, initialWebhook, codigoExempl
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 9, flexWrap: 'wrap' }}>
                   <button onClick={simularLead}
-                    style={{ padding: '10px 15px', borderRadius: 9, border: `1px solid ${simulando === 'ok' ? 'var(--green)' : simulando === 'erro' ? '#c88a7a' : 'rgba(232,168,124,.45)'}`, background: 'transparent', fontSize: 12.5, fontWeight: 700, color: simulando === 'ok' ? 'var(--green)' : simulando === 'erro' ? '#c88a7a' : 'var(--accent)' }}>
+                    style={{ padding: '10px 15px', borderRadius: 9, border: `1px solid ${simulando === 'ok' ? 'var(--green)' : simulando === 'erro' ? '#c88a7a' : 'rgba(201,162,126,.45)'}`, background: 'transparent', fontSize: 12.5, fontWeight: 700, color: simulando === 'ok' ? 'var(--green)' : simulando === 'erro' ? '#c88a7a' : 'var(--accent)' }}>
                     {simulando === 'enviando' ? 'Enviando…' : simulando === 'ok' ? 'Funcionou ✓' : simulando === 'erro' ? 'Falhou' : 'Simular lead do portal'}
                   </button>
                   <span style={{ fontSize: 11.5, color: 'var(--muted)', flex: 1, minWidth: 160, lineHeight: 1.5 }}>
@@ -230,7 +230,7 @@ export default function LeadsClient({ initialLeads, initialWebhook, codigoExempl
           {falhas.length > 0 && (
             <div style={{ display: 'flex', gap: 7 }}>
               {[['todos', `Todos (${leads.length})`], ['falhas', `Com falha (${falhas.length})`]].map(([k, label]) => (
-                <button key={k} onClick={() => setAba(k)} style={{ padding: '8px 14px', borderRadius: 999, fontSize: 12, fontWeight: aba === k ? 700 : 400, background: aba === k ? 'var(--cream)' : 'transparent', color: aba === k ? '#2A2117' : 'var(--cream)', border: `1px solid ${aba === k ? 'var(--cream)' : 'rgba(243,237,227,.22)'}` }}>{label}</button>
+                <button key={k} onClick={() => setAba(k)} style={{ padding: '8px 14px', borderRadius: 999, fontSize: 12, fontWeight: aba === k ? 700 : 400, background: aba === k ? 'var(--cream)' : 'transparent', color: aba === k ? '#22251A' : 'var(--cream)', border: `1px solid ${aba === k ? 'var(--cream)' : 'rgba(240,232,221,.22)'}` }}>{label}</button>
               ))}
             </div>
           )}
@@ -266,7 +266,7 @@ export default function LeadsClient({ initialLeads, initialWebhook, codigoExempl
                         {l.webhook_tentativas > 1 && <span style={{ color: 'var(--muted)' }}> · {l.webhook_tentativas} tentativas</span>}
                       </span>
                       <button onClick={() => reenviar(l)} disabled={reenviando === l.id}
-                        style={{ padding: '8px 14px', borderRadius: 8, border: 0, background: 'var(--accent)', color: '#2A2117', fontSize: 12, fontWeight: 700, opacity: reenviando === l.id ? 0.6 : 1 }}>
+                        style={{ padding: '8px 14px', borderRadius: 8, border: 0, background: 'var(--accent)', color: '#22251A', fontSize: 12, fontWeight: 700, opacity: reenviando === l.id ? 0.6 : 1 }}>
                         {reenviando === l.id ? 'Reenviando…' : 'Reenviar ao n8n'}
                       </button>
                     </div>

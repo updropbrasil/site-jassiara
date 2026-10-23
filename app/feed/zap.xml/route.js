@@ -27,10 +27,10 @@ export async function GET() {
 
   const tel = WHATSAPP.replace(/^55/, '');
   const contato = {
-    nome: c.zap_nome || 'Jason Dias Imóveis',
+    nome: c.zap_nome || 'Jassiara Vasconcelos',
     email: c.zap_email || '',
     telefone: c.zap_telefone || `(${tel.slice(0, 2)}) ${tel.slice(2)}`,
-    contato: c.zap_contato || 'Jason Dias',
+    contato: c.zap_contato || 'Jassiara Vasconcelos',
     site: SITE_URL,
     logo: `${SITE_URL}/brand/logo-verde.png`,
   };
