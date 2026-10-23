@@ -18,6 +18,9 @@ const POSICOES = ['Nascente', 'Nascente norte', 'Nascente sul', 'Poente', 'Poent
 const MOBILIAS = [['mobiliado', 'Mobiliado'], ['semi', 'Semimobiliado'], ['sem', 'Sem mobília'], ['planejados', 'Com planejados']];
 const STEPS = ['Tipo', 'Localização', 'Características', 'Valores', 'Vídeo e fotos', 'Revisão'];
 
+// imóveis da parceria: os que vieram do outro site têm origem_site diferente deste
+const ORIGEM_PROPRIA = 'jassiara';
+
 export default function CadastroClient({ parceiros: parceirosIniciais, imovel, fotosIniciais }) {
   const router = useRouter();
   const supabase = createClient();
@@ -386,10 +389,16 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
               )}
               <Label>Tipo de imóvel</Label>
               <Chips opts={CATEGORIAS.map(c => [c, c])} value={form.categoria} onPick={c => set({ categoria: c })} />
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: 14, borderRadius: 12, border: '1px solid rgba(240,232,221,.15)', fontSize: 14 }}>
-                <input type="checkbox" checked={!!form.compartilhar_parceria} onChange={e => set({ compartilhar_parceria: e.target.checked })} style={{ width: 20, height: 20, marginTop: 1 }} />
-                <span>Aparecer também no site da parceira <strong>Jason Dias Imóveis</strong><br /><span style={{ fontSize: 12, color: 'var(--taupe)' }}>Deixe desmarcado para o imóvel ficar só no seu site.</span></span>
-              </label>
+              {imovel?.origem_site && imovel.origem_site !== ORIGEM_PROPRIA ? (
+                <div style={{ padding: 14, borderRadius: 12, border: '1px solid rgba(201,162,126,.45)', background: 'rgba(201,162,126,.08)', fontSize: 13.5, lineHeight: 1.5 }}>
+                  <strong>Imóvel da parceria</strong> — vem do site do Jason Dias Imóveis e é atualizado sozinho a cada 5 minutos. Mudanças feitas aqui são substituídas; para alterar, edite no site de origem.
+                </div>
+              ) : (
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: 14, borderRadius: 12, border: '1px solid rgba(240,232,221,.15)', fontSize: 14, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={!!form.compartilhar_parceria} onChange={e => set({ compartilhar_parceria: e.target.checked })} style={{ width: 20, height: 20, marginTop: 1 }} />
+                  <span>Aparecer também no site da parceira <strong>Jason Dias Imóveis</strong><br /><span style={{ fontSize: 12, color: 'var(--taupe)' }}>Vai para o site dele com o código dele (JSV → JDV, JSA → JDA), mesmas fotos e vídeo. Temporada não vai (o site dele não tem essa seção). Desmarcou ou pausou aqui, sai de lá.</span></span>
+                </label>
+              )}
               <Hint>Essa escolha já define os filtros em que o anúncio aparece no site.</Hint>
             </>
           )}
