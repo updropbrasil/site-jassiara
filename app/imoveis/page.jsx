@@ -1,0 +1,45 @@
+import { createPublicClient as createClient, whatsappDoSite } from '../../lib/supabase-public';
+import PortalClient from '../PortalClient';
+import { imovelPublico } from '../../lib/publico';
+
+export const revalidate = 60; // ISR: revalida a cada 60s
+
+async function getImoveis() {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('imoveis')
+    .select('*, imovel_fotos(url, thumb_url, ordem)')
+    .eq('status', 'ativo')
+    .order('destaque', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (error) { console.error(error); return []; }
+  return (data || []).map(imovelPublico); // sem endereço com número, contato interno e parceiro
+}
+
+async function getHero() {
+  const supabase = createClient();
+  const { data: cfg } = await supabase
+    .from('site_config')
+    .select('key, value')
+    .in('key', ['hero_video', 'hero_video_file']);
+  const map = {};
+  (cfg || []).forEach(r => { map[r.key] = r.value; });
+  const heroVideoFile = map.hero_video_file || '';
+  if (map.hero_video) return { heroVideo: map.hero_video, heroVideoFile };
+  // fallback: vídeo do imóvel em destaque, ou o mais recente que tenha vídeo
+  const { data } = await supabase
+    .from('imoveis')
+    .select('youtube_url, destaque, created_at')
+    .eq('status', 'ativo')
+    .not('youtube_url', 'is', null)
+    .order('destaque', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return { heroVideo: data?.youtube_url || '', heroVideoFile };
+}
+
+export default async function HomePage() {
+  const [imoveis, hero, whats] = await Promise.all([getImoveis(), getHero(), whatsappDoSite(createClient())]);
+  return <PortalClient imoveis={imoveis} heroVideo={hero.heroVideo} heroVideoFile={hero.heroVideoFile} whats={whats} />;
+}

@@ -1,0 +1,818 @@
+'use client';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '../../../lib/supabase-browser';
+import { uploadToR2 } from '../../../lib/r2-upload';
+import { ytId, ytThumb, parsePreco, formatPreco, slugify, tituloSeo, MOBILIA_LABELS, maskThousands, onlyDigits } from '../../../lib/format';
+import { qualidadeAnuncio, cepValido } from '../../../lib/zap-feed';
+import { toWideBlob } from '../../../lib/image';
+
+const CATEGORIAS = ['Apartamento', 'Casa', 'Cobertura', 'Flat / Studio', 'Comercial'];
+const BAIRROS = ['Cabo Branco', 'Manaíra', 'Tambaú', 'Bessa', 'Altiplano', 'Intermares'];
+const FEATURE_GRUPOS = [
+  ['Lazer do condomínio', ['Piscina', 'Piscina infantil', 'Academia', 'Salão de festas', 'Salão de jogos', 'Churrasqueira', 'Espaço gourmet', 'Playground', 'Quadra poliesportiva', 'Quadra de tênis', 'Sauna', 'Spa', 'Cinema', 'Coworking', 'Espaço pet', 'Lavanderia', 'Mini mercado', 'Bicicletário', 'Vestiário']],
+  ['Serviços e segurança', ['Portaria 24h', 'Segurança 24h', 'Circuito de segurança', 'Alarme', 'Portão eletrônico', 'Interfone', 'Elevador', 'Gerador', 'Energia solar', 'Condomínio fechado', 'Acesso para deficientes']],
+  ['Do imóvel', ['Varanda gourmet', 'Varanda', 'Vista para o mar', 'Ar condicionado', 'Closet', 'Cozinha americana', 'Cozinha planejada', 'Lavabo', 'Área de serviço', 'Escritório', 'Despensa', 'Hidromassagem', 'Lareira', 'Piscina privativa', 'Quintal', 'Jardim', 'Permite animais']],
+];
+const POSICOES = ['Nascente', 'Nascente norte', 'Nascente sul', 'Poente', 'Poente norte', 'Poente sul', 'Norte', 'Sul'];
+const MOBILIAS = [['mobiliado', 'Mobiliado'], ['semi', 'Semimobiliado'], ['sem', 'Sem mobília'], ['planejados', 'Com planejados']];
+const STEPS = ['Tipo', 'Localização', 'Características', 'Valores', 'Vídeo e fotos', 'Revisão'];
+
+export default function CadastroClient({ parceiros: parceirosIniciais, imovel, fotosIniciais }) {
+  const router = useRouter();
+  const supabase = createClient();
+  const editando = !!imovel;
+
+  const [step, setStep] = useState(0);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState('');
+  const [parceiros, setParceiros] = useState(parceirosIniciais || []);
+  const [novoParceiro, setNovoParceiro] = useState(false);
+  const [nomeParceiro, setNomeParceiro] = useState('');
+  async function criarParceiro() {
+    const nome = nomeParceiro.trim();
+    if (!nome) return;
+    const { data, error } = await supabase.from('parceiros').insert({ nome }).select('*').single();
+    if (error) { setErro('Não consegui salvar o parceiro. Já existe com esse nome?'); return; }
+    setParceiros(l => [...l, data].sort((a, b) => a.nome.localeCompare(b.nome)));
+    set({ parceiro_id: data.id });
+    setNomeParceiro('');
+    setNovoParceiro(false);
+  }
+  const [wide, setWide] = useState(false);
+  const [novasFotos, setNovasFotos] = useState([]); // {file, preview}
+  const [fotosSalvas, setFotosSalvas] = useState(fotosIniciais || []); // fotos já no banco (edição)
+  const [videoArquivo, setVideoArquivo] = useState(null); // {file, preview}
+  const [videoPct, setVideoPct] = useState(0);
+  const [avisoVideo, setAvisoVideo] = useState('');
+  const [dragIdx, setDragIdx] = useState(null);
+  function onPickVideo(e) {
+    const f = (e.target.files || [])[0];
+    if (f) setVideoArquivo({ file: f, preview: URL.createObjectURL(f) });
+    e.target.value = '';
+  }
+  function moveFoto(from, to) {
+    if (from == null || to == null || from === to || to < 0 || to >= novasFotos.length) return;
+    setNovasFotos(list => {
+      const arr = [...list];
+      const [it] = arr.splice(from, 1);
+      arr.splice(to, 0, it);
+      return arr;
+    });
+    setDragIdx(null);
+  }
+  function removeFoto(i) {
+    setNovasFotos(list => list.filter((_, j) => j !== i));
+  }
+  async function apagarFotoSalva(f) {
+    if (!window.confirm('Apagar esta foto do anúncio?')) return;
+    const { error } = await supabase.from('imovel_fotos').delete().eq('id', f.id);
+    if (error) { alert('Não consegui apagar: ' + error.message); return; }
+    setFotosSalvas(list => list.filter(x => x.id !== f.id));
+  }
+  function moveFotoSalva(from, to) {
+    if (to < 0 || to >= fotosSalvas.length || from === to) return;
+    setFotosSalvas(list => {
+      const arr = [...list];
+      const [it] = arr.splice(from, 1);
+      arr.splice(to, 0, it);
+      return arr;
+    });
+  }
+  const [form, setForm] = useState(() => imovel ? {
+    finalidade: imovel.finalidade, categoria: imovel.categoria, titulo: imovel.titulo,
+    bairro: imovel.bairro, endereco: imovel.endereco || '', referencia: imovel.referencia || '',
+    mobilia: imovel.mobilia, quartos: imovel.quartos || 0, suites: imovel.suites || 0,
+    banheiros: imovel.banheiros || 0, vagas: imovel.vagas || 0, area: imovel.area_m2 || '', andar: imovel.andar || '', posicao: imovel.posicao_solar || '',
+    preco: imovel.preco_cents ? String(imovel.preco_cents / 100) : '',
+    condominio: imovel.condominio_cents ? String(imovel.condominio_cents / 100) : '',
+    iptu: imovel.iptu_cents ? String(imovel.iptu_cents / 100) : '',
+    condominio_tipo: imovel.condominio_tipo || 'valor', iptu_tipo: imovel.iptu_tipo || 'valor',
+    video: imovel.youtube_url || '', videoUrl: imovel.video_file_url || '', videoMode: imovel.video_file_url ? 'arquivo' : 'link', descricao: imovel.descricao || '',
+    parceiro_id: imovel.parceiro_id || '', parceiro_pct: imovel.parceiro_pct || '', codigo: imovel.codigo || '', cep: imovel.cep || '',
+    numero: imovel.numero || '', complemento: imovel.complemento || '', ano: imovel.ano_construcao || '',
+    contato_interno: imovel.contato_interno || '',
+    condominio_inclui: imovel.condominio_inclui || '', agua_tipo: imovel.agua_tipo || 'nao_informado', gas_tipo: imovel.gas_tipo || 'nao_informado',
+    captacao: imovel.captacao || 'propria', parceiro_nome: imovel.parceiro_nome || '', parceiro_whatsapp: imovel.parceiro_whatsapp || '',
+    features: Array.isArray(imovel.features) ? imovel.features : []
+  } : {
+    finalidade: 'aluguel', categoria: 'Apartamento', titulo: '', bairro: '', endereco: '', referencia: '',
+    mobilia: 'sem', quartos: 3, suites: 1, banheiros: 2, vagas: 2, area: '', andar: '', posicao: '', preco: '', condominio: '', iptu: '',
+    condominio_tipo: 'valor', iptu_tipo: 'valor',
+    video: '', videoUrl: '', videoMode: 'link', descricao: '', parceiro_id: '', parceiro_pct: '', codigo: '', cep: '',
+    numero: '', complemento: '', ano: '', contato_interno: '', features: [],
+    condominio_inclui: '', agua_tipo: 'nao_informado', gas_tipo: 'nao_informado', captacao: 'propria', parceiro_nome: '', parceiro_whatsapp: ''
+  });
+
+  const set = (patch) => setForm(f => ({ ...f, ...patch }));
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1000px)');
+    const on = () => setWide(mq.matches);
+    on(); mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  const isAluguel = form.finalidade === 'aluguel';
+  const seoTitle = tituloSeo({ categoria: form.categoria, quartos: form.quartos, suites: form.suites, mobilia: form.mobilia, finalidade: form.finalidade, bairro: form.bairro });
+  const vid = ytId(form.video);
+  const codigoSugerido = useMemo(() => {
+    const pre = form.finalidade === 'venda' ? 'JDV' : 'JDA';
+    return `${pre}-${Math.floor(1000 + Math.random() * 9000)}`;
+  }, [form.finalidade]);
+
+  // capa que a prévia mostra: vídeo do YouTube → foto nova → foto já salva → capa do imóvel
+  const foto1 = novasFotos[0]?.preview || fotosSalvas[0]?.url || fotosSalvas[0]?.thumb_url || '';
+  const capaPreview = (vid ? ytThumb(vid) : '') || foto1 || imovel?.capa_url || '';
+  const capaBg = capaPreview ? `url("${capaPreview}") center/cover` : '#463928';
+  const videoPreviewUrl = videoArquivo?.preview
+    || (form.videoMode === 'arquivo' ? (form.videoUrl || imovel?.video_file_url || '') : '');
+  const semMidia = !capaPreview && !videoPreviewUrl;
+
+  // prévia da força do anúncio nos portais (mesma conta da página Portais)
+  const qual = qualidadeAnuncio({
+    descricao: form.descricao,
+    cep: form.cep, endereco: form.endereco, numero: form.numero,
+    area_m2: form.area, youtube_url: form.videoMode === 'link' ? form.video : '',
+    features: form.features, ano_construcao: form.ano,
+    imovel_fotos: [...fotosSalvas.map(f => ({ url: f.url })), ...novasFotos.map((_, i) => ({ url: `https://x/${i}.jpg` }))],
+  });
+
+  function gerarDescricao() {
+    const isAlq = form.finalidade === 'aluguel';
+    const l = [];
+    l.push(`${form.categoria} ${isAlq ? 'para alugar' : 'à venda'} no ${form.bairro || 'bairro'}, em João Pessoa${form.referencia ? ` — ${form.referencia}` : ''}.`);
+    l.push('');
+    if (Number(form.quartos)) l.push(`✅ ${form.quartos} quarto${form.quartos > 1 ? 's' : ''}${Number(form.suites) ? ` (${form.suites} suíte${form.suites > 1 ? 's' : ''})` : ''}`);
+    if (Number(form.banheiros)) l.push(`✅ ${form.banheiros} banheiro${form.banheiros > 1 ? 's' : ''}`);
+    if (Number(form.vagas)) l.push(`✅ ${form.vagas} vaga${form.vagas > 1 ? 's' : ''} de garagem`);
+    if (form.area) l.push(`✅ ${form.area} m²`);
+    if (form.andar) l.push(`✅ ${/térreo/i.test(form.andar) ? 'Térreo' : form.andar + ' andar'}`);
+    if (form.posicao) l.push(`✅ Posição do sol: ${form.posicao}`);
+    const mob = { mobiliado: 'Mobiliado', semi: 'Semimobiliado', planejados: 'Com móveis planejados' }[form.mobilia];
+    if (mob) l.push(`✅ ${mob}`);
+    (form.features || []).forEach(f => l.push(`✅ ${f}`));
+    l.push('');
+    if (isAlq) {
+      const extras = [];
+      if (form.condominio_tipo === 'isento') extras.push('condomínio isento');
+      else if (form.condominio_tipo === 'incluso') extras.push('condomínio incluso');
+      else if (form.condominio_tipo === 'valor' && form.condominio) extras.push(`condomínio R$ ${maskThousands(form.condominio)}`);
+      if (form.iptu_tipo === 'isento') extras.push('IPTU isento');
+      else if (form.iptu_tipo === 'incluso') extras.push('IPTU incluso');
+      else if (form.iptu_tipo === 'valor' && form.iptu) extras.push(`IPTU R$ ${maskThousands(form.iptu)}`);
+      l.push(`💰 Aluguel: R$ ${maskThousands(form.preco)}/mês${extras.length ? ` (${extras.join(' · ')})` : ''}`);
+      if ((form.condominio_inclui || '').trim()) l.push(`🏢 Condomínio inclui: ${form.condominio_inclui.trim()}`);
+      const util = [];
+      if (form.agua_tipo === 'incluso') util.push('água inclusa'); else if (form.agua_tipo === 'individual') util.push('água individual');
+      if (form.gas_tipo === 'incluso') util.push('gás incluso'); else if (form.gas_tipo === 'individual') util.push('gás individual');
+      if (util.length) l.push(`💧 ${util.join(' · ')}`);
+      l.push('ℹ️ Valores de condomínio e IPTU são informativos e podem sofrer alterações.');
+    } else {
+      l.push(`💰 Valor: R$ ${maskThousands(form.preco)}`);
+    }
+    l.push(`📍 ${form.bairro || ''}, João Pessoa – PB`);
+    const cod = (form.codigo || '').trim().toUpperCase() || codigoSugerido;
+    if (cod) l.push(`🔖 Código: ${cod}`);
+    l.push('');
+    l.push('📲 Fale com a gente no WhatsApp e agende sua visita!');
+    set({ descricao: l.join('\n') });
+  }
+
+  function addFotos(e) {
+    const files = Array.from(e.target.files || []);
+    setNovasFotos(prev => [...prev, ...files.map(file => ({ file, preview: URL.createObjectURL(file) }))]);
+    e.target.value = '';
+  }
+
+  // reduz a foto (mantém boa qualidade) antes de subir — carrega muito mais rápido
+  function compressImage(file, maxDim = 1600, quality = 0.8) {
+    return new Promise((resolve) => {
+      if (!file.type || !file.type.startsWith('image/')) return resolve(file);
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        const m = Math.max(width, height);
+        if (m > maxDim) { const s = maxDim / m; width = Math.round(width * s); height = Math.round(height * s); }
+        const c = document.createElement('canvas');
+        c.width = width; c.height = height;
+        c.getContext('2d').drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(url);
+        c.toBlob(b => resolve(b || file), 'image/jpeg', quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  }
+
+  async function publicar() {
+    setSalvando(true); setErro('');
+    try {
+      const payload = {
+        titulo: form.titulo.trim() || seoTitle,
+        slug: (imovel?.slug) || `${slugify(form.titulo || seoTitle)}-${Date.now().toString(36)}`,
+        finalidade: form.finalidade, categoria: form.categoria, mobilia: form.mobilia,
+        bairro: form.bairro || 'João Pessoa', endereco: form.endereco, referencia: form.referencia,
+        quartos: Number(form.quartos), suites: Number(form.suites), banheiros: Number(form.banheiros),
+        vagas: Number(form.vagas), area_m2: form.area ? Number(String(form.area).replace(/\D/g, '')) : null, andar: form.andar || null,
+        posicao_solar: form.posicao || null,
+        preco_cents: parsePreco(form.preco),
+        condominio_cents: form.condominio_tipo === 'valor' ? parsePreco(form.condominio) : (form.condominio_tipo === 'nao_informado' ? null : 0),
+        iptu_cents: form.iptu_tipo === 'valor' ? parsePreco(form.iptu) : (form.iptu_tipo === 'nao_informado' ? null : 0),
+        condominio_tipo: form.condominio_tipo || 'valor', iptu_tipo: form.iptu_tipo || 'valor',
+        youtube_url: (form.videoMode === 'link' && form.video) ? form.video : null,
+        video_id: (form.videoMode === 'link' && vid) ? vid : null,
+        video_file_url: form.videoMode === 'arquivo' ? ((form.videoUrl || '').trim() || null) : null,
+        capa_url: (form.videoMode === 'link' && vid)
+          ? `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`
+          : (String(imovel?.capa_url || '').includes('ytimg.com') ? null : (imovel?.capa_url || null)),
+        descricao: form.descricao || null,
+        codigo: (form.codigo || '').trim().toUpperCase() || codigoSugerido,
+        cep: (form.cep || '').trim() || null,
+        numero: (form.numero || '').trim() || null,
+        complemento: (form.complemento || '').trim() || null,
+        ano_construcao: form.ano ? Number(String(form.ano).replace(/\D/g, '')) || null : null,
+        features: Array.isArray(form.features) ? form.features : [],
+        parceiro_id: form.parceiro_id || null, parceiro_pct: form.parceiro_id ? (Number(form.parceiro_pct) || null) : null,
+        contato_interno: (form.contato_interno || '').trim() || null,
+        condominio_inclui: (form.condominio_inclui || '').trim() || null,
+        agua_tipo: form.agua_tipo || 'nao_informado', gas_tipo: form.gas_tipo || 'nao_informado',
+        captacao: form.captacao || 'propria',
+        parceiro_nome: form.captacao === 'parceiro' ? ((form.parceiro_nome || '').trim() || null) : null,
+        parceiro_whatsapp: form.captacao === 'parceiro' ? ((form.parceiro_whatsapp || '').replace(/\D/g, '') || null) : null,
+        status: 'ativo'
+      };
+
+      let imovelId = imovel?.id;
+      if (editando) {
+        await supabase.from('imoveis').update(payload).eq('id', imovel.id);
+      } else {
+        const { data, error } = await supabase.from('imoveis').insert(payload).select('id').single();
+        if (error) throw error;
+        imovelId = data.id;
+      }
+
+      // upload do vídeo (se escolhido): direto pro Cloudflare R2 (sem limite)
+      if (form.videoMode === 'arquivo' && videoArquivo) {
+        let videoUrl = null; let motivo = '';
+        try {
+          videoUrl = await uploadToR2(videoArquivo.file, setVideoPct);
+          if (!videoUrl) motivo = 'Cloudflare R2 não configurado no servidor';
+        } catch (e) {
+          motivo = e?.message || 'falha no envio pro Cloudflare';
+        }
+        // fallback Supabase só faz sentido para arquivos pequenos (≤ 45 MB)
+        if (!videoUrl && videoArquivo.file.size <= 45 * 1024 * 1024) {
+          const ext = (videoArquivo.file.name.split('.').pop() || 'mp4');
+          const path = `${imovelId}/tour-${Date.now()}.${ext}`;
+          const { error: vErr } = await supabase.storage.from('imoveis-videos').upload(path, videoArquivo.file, { upsert: true, contentType: videoArquivo.file.type });
+          if (!vErr) {
+            const { data: pub } = supabase.storage.from('imoveis-videos').getPublicUrl(path);
+            videoUrl = pub.publicUrl;
+          }
+        }
+        if (videoUrl) {
+          await supabase.from('imoveis').update({ video_file_url: videoUrl }).eq('id', imovelId);
+          setAvisoVideo('');
+          // comprime no servidor em segundo plano (720p leve); o link é trocado sozinho quando terminar
+          fetch('/api/admin/otimizar-video', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: imovelId }) }).catch(() => {});
+        } else {
+          setAvisoVideo(`O vídeo NÃO subiu (${motivo}). O anúncio foi salvo sem vídeo — abra “Editar” e envie de novo.`);
+        }
+        setVideoPct(0);
+      }
+
+      // upload das novas fotos — miniatura + grande, direto pro R2 (rápido); senão Supabase
+      let primeiraFotoUrl = null;
+      for (let i = 0; i < novasFotos.length; i++) {
+        const blob = await compressImage(novasFotos[i].file);
+        const thumbBlob = await compressImage(novasFotos[i].file, 520, 0.62);
+        const wideBlob = await toWideBlob(novasFotos[i].file);
+        let url = null, thumbUrl = null, wideUrl = null, path = null;
+        try {
+          url = await uploadToR2(new File([blob], `foto-${i}.jpg`, { type: 'image/jpeg' }), null, 'fotos');
+          thumbUrl = await uploadToR2(new File([thumbBlob], `thumb-${i}.jpg`, { type: 'image/jpeg' }), null, 'fotos');
+          if (wideBlob) wideUrl = await uploadToR2(new File([wideBlob], `wide-${i}.jpg`, { type: 'image/jpeg' }), null, 'fotos');
+          if (url) path = url; // path nunca pode ser nulo (coluna not null no banco original)
+        } catch (e) { url = null; }
+        if (!url) {
+          path = `${imovelId}/${Date.now()}-${i}.jpg`;
+          const { error: upErr } = await supabase.storage.from('imoveis-fotos').upload(path, blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '31536000' });
+          if (upErr) continue;
+          const { data: pub } = supabase.storage.from('imoveis-fotos').getPublicUrl(path);
+          url = pub.publicUrl;
+        }
+        if (!primeiraFotoUrl) primeiraFotoUrl = thumbUrl || url;
+        // grava a foto; se o banco não tiver as colunas novas, regrava só com as básicas
+        let { error: fErr } = await supabase.from('imovel_fotos').insert({ imovel_id: imovelId, path, url, thumb_url: thumbUrl, wide_url: wideUrl, ordem: fotosSalvas.length + i });
+        if (fErr) {
+          const retry = await supabase.from('imovel_fotos').insert({ imovel_id: imovelId, path, url, ordem: fotosSalvas.length + i });
+          if (retry.error) throw new Error(`Foto ${i + 1} não foi registrada: ${retry.error.message}`);
+        }
+      }
+      // persiste a ordem das fotos já salvas (reordenadas na edição)
+      for (let i = 0; i < fotosSalvas.length; i++) {
+        if (fotosSalvas[i].ordem !== i) await supabase.from('imovel_fotos').update({ ordem: i }).eq('id', fotosSalvas[i].id);
+      }
+      // a capa do card acompanha a foto nº 1 (sem isso, reordenar não muda a capa)
+      if (fotosSalvas.length) {
+        const c = fotosSalvas[0].thumb_url || fotosSalvas[0].url;
+        if (c && c !== imovel?.capa_url) await supabase.from('imoveis').update({ capa_url: c }).eq('id', imovelId);
+      }
+      // se não é YouTube e ainda não tem capa, usa a 1ª foto como capa/poster
+      if (form.videoMode === 'arquivo' && primeiraFotoUrl) {
+        await supabase.from('imoveis').update({ capa_url: primeiraFotoUrl }).eq('id', imovelId);
+      }
+
+      setStep(6);
+      router.refresh();
+    } catch (err) {
+      setErro('Não foi possível salvar. Verifique os campos e tente novamente.');
+      console.error(err);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  function next() {
+    if (step === 5) { publicar(); return; }
+    setStep(s => Math.min(6, s + 1));
+    window.scrollTo(0, 0);
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-3)', display: 'flex', justifyContent: 'center', gap: 40, padding: wide ? '0 24px' : 0 }}>
+      <div style={{ width: '100%', maxWidth: 480, minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+        <header style={{ position: 'sticky', top: 0, zIndex: 20, background: 'rgba(31,24,18,.95)', backdropFilter: 'blur(8px)', padding: '16px 20px 12px', borderBottom: '1px solid var(--line)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <button onClick={() => step > 0 && step < 6 ? setStep(step - 1) : router.push('/admin')} style={{ width: 40, height: 40, borderRadius: 999, border: '1px solid rgba(243,237,227,.15)', background: 'transparent', color: 'var(--cream)', fontSize: 16 }}>‹</button>
+            <div style={{ textAlign: 'center' }}>
+              <div className="serif" style={{ fontSize: 16, color: 'var(--cream-2)' }}>{editando ? 'Editar imóvel' : 'Novo imóvel'}</div>
+              <div style={{ fontSize: 11, color: 'var(--taupe)' }}>{step < 6 ? `Passo ${step + 1} de 6 · ${STEPS[step]}` : 'Concluído'}</div>
+            </div>
+            <a href="/admin" title="Voltar à gestão" style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, border: '1px solid rgba(243,237,227,.15)', color: 'var(--sand)' }}>≡</a>
+          </div>
+          <div style={{ height: 4, background: 'rgba(243,237,227,.1)', borderRadius: 999, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${(Math.min(step, 6) / 6) * 100}%`, background: 'var(--accent)', borderRadius: 999, transition: 'width .3s' }} />
+          </div>
+        </header>
+
+        <div style={{ flex: 1, padding: '24px 20px 120px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {step === 0 && (
+            <>
+              <h2 style={{ fontSize: 24, color: 'var(--cream-2)', margin: 0 }}>O imóvel é para alugar ou vender?</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {[['aluguel', 'Alugar', 'Aluguel mensal'], ['venda', 'Vender', 'Venda direta']].map(([k, l, s]) => (
+                  <button key={k} onClick={() => set({ finalidade: k })} style={bigOpt(form.finalidade === k)}>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: form.finalidade === k ? 'var(--accent)' : 'var(--cream)' }}>{l}</div>
+                    <div style={{ fontSize: 12, color: 'var(--taupe)', marginTop: 4 }}>{s}</div>
+                  </button>
+                ))}
+              </div>
+              <Label>Tipo de imóvel</Label>
+              <Chips opts={CATEGORIAS.map(c => [c, c])} value={form.categoria} onPick={c => set({ categoria: c })} />
+              <Hint>Essa escolha já define os filtros em que o anúncio aparece no site.</Hint>
+            </>
+          )}
+
+          {step === 1 && (
+            <>
+              <h2 style={h2}>Onde fica?</h2>
+              <Field label="Bairro">
+                <input value={form.bairro} onChange={e => set({ bairro: e.target.value })} placeholder="Digite o bairro… ex.: Cabo Branco" style={inp} />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
+                  {BAIRROS.map(b => (
+                    <button key={b} onClick={() => set({ bairro: b })} style={{ padding: '8px 14px', borderRadius: 999, fontSize: 13, fontWeight: form.bairro === b ? 700 : 400, border: `1px solid ${form.bairro === b ? 'var(--accent)' : 'rgba(243,237,227,.2)'}`, background: form.bairro === b ? 'rgba(232,168,124,.12)' : 'transparent', color: form.bairro === b ? 'var(--accent)' : 'var(--sand)' }}>{b}</button>
+                  ))}
+                </div>
+                <Hint>Toque numa sugestão ou escreva outro bairro.</Hint>
+              </Field>
+              <Field label="CEP">
+                <input value={form.cep} onChange={e => set({ cep: maskCep(e.target.value) })} placeholder="58000-000" inputMode="numeric"
+                  style={{ ...inp, borderColor: form.cep && !cepValido(form.cep) ? 'rgba(200,138,122,.6)' : 'rgba(243,237,227,.15)' }} />
+                {form.cep && !cepValido(form.cep)
+                  ? <Hint><span style={{ color: '#c88a7a' }}>CEP incompleto — o portal recusa o anúncio. Precisa ter 8 dígitos.</span></Hint>
+                  : <Hint>Obrigatório para publicar no Zap / VivaReal / OLX. Não aparece no nosso site.</Hint>}
+              </Field>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <Field label="Número">
+                  <input value={form.numero} onChange={e => set({ numero: e.target.value })} placeholder="Ex.: 539" style={inp} />
+                </Field>
+                <Field label="Complemento">
+                  <input value={form.complemento} onChange={e => set({ complemento: e.target.value })} placeholder="Ex.: apto 1201" style={inp} />
+                </Field>
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.6, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10, padding: '11px 13px' }}>
+                🔒 Rua, número e CEP <strong style={{ color: 'var(--sand)' }}>não aparecem</strong> nem no nosso site nem no portal — servem para o imóvel aparecer na busca por mapa e subir no ranqueamento. Quem pesquisa vê só o bairro.
+              </div>
+              <Field label="Endereço completo — 🔒 NÃO APARECE NO SITE">
+                <input value={form.endereco} onChange={e => set({ endereco: e.target.value })} placeholder="Rua, número, complemento…" style={inp} />
+                <Hint>Só para seu controle interno — o cliente recebe o endereço no WhatsApp.</Hint>
+              </Field>
+              <Field label="Ponto de referência (aparece no site)">
+                <input value={form.referencia} onChange={e => set({ referencia: e.target.value })} placeholder="Ex.: a 200 m da praia de Tambaú" style={inp} />
+              </Field>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <h2 style={h2}>Características</h2>
+              {[['quartos', 'Quartos'], ['suites', 'Suítes'], ['banheiros', 'Banheiros'], ['vagas', 'Vagas de garagem']].map(([k, l]) => (
+                <div key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 14, padding: '14px 16px' }}>
+                  <span style={{ fontSize: 15 }}>{l}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <button onClick={() => set({ [k]: Math.max(0, form[k] - 1) })} style={counterBtn(false)}>−</button>
+                    <span style={{ fontSize: 18, fontWeight: 700, minWidth: 24, textAlign: 'center', color: 'var(--cream-2)' }}>{form[k]}</span>
+                    <button onClick={() => set({ [k]: form[k] + 1 })} style={counterBtn(true)}>+</button>
+                  </div>
+                </div>
+              ))}
+              <Field label="Mobília">
+                <Chips opts={MOBILIAS} value={form.mobilia} onPick={m => set({ mobilia: m })} />
+              </Field>
+              <Field label="Área (m²)">
+                <input value={form.area} onChange={e => set({ area: e.target.value })} placeholder="Ex.: 148" inputMode="numeric" style={inp} />
+              </Field>
+              {form.categoria !== 'Casa' && (
+                <Field label="Andar">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {['Térreo', '1º', '2º', '3º', '4º+', 'Cobertura'].map(a => (
+                      <button key={a} onClick={() => set({ andar: a })} style={{ padding: '10px 16px', borderRadius: 999, fontSize: 14, fontWeight: form.andar === a ? 700 : 400, border: `1px solid ${form.andar === a ? 'var(--accent)' : 'rgba(243,237,227,.2)'}`, background: form.andar === a ? 'rgba(232,168,124,.12)' : 'transparent', color: form.andar === a ? 'var(--accent)' : 'var(--sand)' }}>{a}</button>
+                    ))}
+                  </div>
+                  <input value={form.andar} onChange={e => set({ andar: e.target.value })} placeholder="Ou escreva… ex.: 12º andar" style={inp} />
+                </Field>
+              )}
+              <Field label="Posição do sol">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {POSICOES.map(p => (
+                    <button key={p} onClick={() => set({ posicao: form.posicao === p ? '' : p })} style={{ padding: '10px 16px', borderRadius: 999, fontSize: 14, fontWeight: form.posicao === p ? 700 : 400, border: `1px solid ${form.posicao === p ? 'var(--accent)' : 'rgba(243,237,227,.2)'}`, background: form.posicao === p ? 'rgba(232,168,124,.12)' : 'transparent', color: form.posicao === p ? 'var(--accent)' : 'var(--sand)' }}>{p}</button>
+                  ))}
+                </div>
+                <Hint>Aparece na página do imóvel. Toque de novo para desmarcar.</Hint>
+              </Field>
+              <Field label="Ano de construção">
+                <input value={form.ano} onChange={e => set({ ano: e.target.value.replace(/\D/g, '').slice(0, 4) })} placeholder="Ex.: 2019" inputMode="numeric" style={inp} />
+                <Hint>Opcional, mas conta como anúncio completo no portal.</Hint>
+              </Field>
+              <Field label={`Características (${(form.features || []).length})`}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {FEATURE_GRUPOS.map(([grupo, opts]) => (
+                    <div key={grupo}>
+                      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.12em', color: 'var(--taupe)', marginBottom: 8 }}>{grupo.toUpperCase()}</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                        {opts.map(f => {
+                          const on = (form.features || []).includes(f);
+                          return (
+                            <button key={f} onClick={() => set({ features: on ? form.features.filter(x => x !== f) : [...(form.features || []), f] })}
+                              style={{ padding: '9px 13px', borderRadius: 999, fontSize: 12.5, fontWeight: on ? 700 : 400, border: `1px solid ${on ? 'var(--accent)' : 'rgba(243,237,227,.2)'}`, background: on ? 'rgba(232,168,124,.12)' : 'transparent', color: on ? 'var(--accent)' : 'var(--sand)' }}>{f}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Hint>Mesma lista que o Zap / VivaReal / OLX usa nos filtros. Marque 4 ou mais — é o que traz cliente qualificado.</Hint>
+              </Field>
+            </>
+          )}
+
+          {step === 3 && (
+            <>
+              <h2 style={h2}>Valores</h2>
+              <Field label={isAluguel ? 'Valor do aluguel' : 'Valor de venda'}>
+                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-2)', border: '1px solid rgba(232,168,124,.4)', borderRadius: 14, padding: '0 18px' }}>
+                  <span style={{ fontSize: 18, color: 'var(--taupe)' }}>R$</span>
+                  <input value={maskThousands(form.preco)} onChange={e => set({ preco: onlyDigits(e.target.value) })} placeholder="0" inputMode="numeric" style={{ flex: 1, background: 'transparent', border: 0, padding: '18px 12px', fontSize: 24, fontWeight: 700, color: 'var(--cream-2)', minWidth: 0 }} />
+                  {isAluguel && <span style={{ fontSize: 14, color: 'var(--taupe)' }}>/mês</span>}
+                </div>
+              </Field>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <TaxaField label="Condomínio" tipo={form.condominio_tipo} valor={form.condominio} aluguel={isAluguel}
+                  onTipo={t => set({ condominio_tipo: t })} onValor={v => set({ condominio: v })} />
+                <TaxaField label="IPTU" tipo={form.iptu_tipo} valor={form.iptu} aluguel={isAluguel}
+                  onTipo={t => set({ iptu_tipo: t })} onValor={v => set({ iptu: v })} />
+              </div>
+              <Field label="O que o condomínio inclui">
+                <input value={form.condominio_inclui} onChange={e => set({ condominio_inclui: e.target.value })} placeholder="Ex.: água, gás, portaria, internet, lazer" style={inp} />
+                <Hint>Opcional — entra na descrição e no contexto da IA de atendimento.</Hint>
+              </Field>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <UtilField label="Água" value={form.agua_tipo} onPick={v => set({ agua_tipo: v })} />
+                <UtilField label="Gás" value={form.gas_tipo} onPick={v => set({ gas_tipo: v })} />
+              </div>
+              <div style={{ background: 'rgba(232,168,124,.06)', border: '1px solid rgba(232,168,124,.22)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sand)' }}>Captação <span style={{ fontWeight: 400, color: 'var(--muted)' }}>· controle interno</span></div>
+                <div style={{ display: 'flex', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10, padding: 3 }}>
+                  {[['propria', 'Própria'], ['parceiro', 'De parceiro']].map(([k, l]) => (
+                    <button key={k} onClick={() => set({ captacao: k })} style={{ flex: 1, padding: '9px 4px', borderRadius: 7, border: 0, fontSize: 12.5, fontWeight: form.captacao === k ? 700 : 400, background: form.captacao === k ? 'var(--accent)' : 'transparent', color: form.captacao === k ? '#2A2117' : 'var(--taupe)' }}>{l}</button>
+                  ))}
+                </div>
+                {form.captacao === 'parceiro' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <input value={form.parceiro_nome} onChange={e => set({ parceiro_nome: e.target.value })} placeholder="Nome do corretor" style={inp} />
+                    <input value={form.parceiro_whatsapp} onChange={e => set({ parceiro_whatsapp: e.target.value })} placeholder="WhatsApp · 83 9xxxx-xxxx" inputMode="tel" style={inp} />
+                  </div>
+                )}
+                <Hint>🔒 Vai só para o atendimento (payload do lead) — não aparece no site nem nos portais.</Hint>
+              </div>
+              <div style={{ background: 'rgba(232,168,124,.06)', border: '1px solid rgba(232,168,124,.22)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--sand)' }}>Parceria <span style={{ fontWeight: 400, color: 'var(--muted)' }}>· controle interno</span></div>
+                <select value={form.parceiro_id} onChange={e => set({ parceiro_id: e.target.value })} style={{ ...inp, appearance: 'auto' }}>
+                  <option value="">Sem parceria</option>
+                  {parceiros.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                </select>
+                {!novoParceiro ? (
+                  <button onClick={() => setNovoParceiro(true)} style={{ alignSelf: 'flex-start', background: 'transparent', border: 0, color: 'var(--accent)', fontSize: 12.5, fontWeight: 700, padding: 0 }}>+ Cadastrar novo parceiro</button>
+                ) : (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input value={nomeParceiro} onChange={e => setNomeParceiro(e.target.value)} placeholder="Nome do corretor / imobiliária" style={{ ...inp, flex: 1 }} />
+                    <button onClick={criarParceiro} style={{ padding: '0 16px', borderRadius: 12, background: 'var(--accent)', color: '#2A2117', fontSize: 13, fontWeight: 700, border: 0 }}>Salvar</button>
+                    <button onClick={() => { setNovoParceiro(false); setNomeParceiro(''); }} style={{ padding: '0 12px', borderRadius: 12, background: 'transparent', border: '1px solid rgba(243,237,227,.2)', color: 'var(--taupe)', fontSize: 13 }}>×</button>
+                  </div>
+                )}
+                {form.parceiro_id && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 13, color: 'var(--sand)' }}>Comissão:</span>
+                    <input value={form.parceiro_pct} onChange={e => set({ parceiro_pct: e.target.value.replace(/\D/g, '') })} style={{ width: 64, textAlign: 'center', ...inp }} />
+                    <span style={{ color: 'var(--accent)', fontWeight: 700 }}>%</span>
+                  </div>
+                )}
+                <Field label="Contato do proprietário / parceiro">
+                  <input value={form.contato_interno} onChange={e => set({ contato_interno: e.target.value })} placeholder="Ex.: João (dono) — 83 99999-0000" style={inp} />
+                  <Hint>🔒 Só interno — não aparece no site nem vai para os portais.</Hint>
+                </Field>
+              </div>
+            </>
+          )}
+
+          {step === 4 && (
+            <>
+              <h2 style={h2}>Vídeo e fotos</h2>
+              {editando && (imovel?.youtube_url || imovel?.video_file_url) && (form.video || form.videoUrl) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 12, padding: '11px 14px' }}>
+                  <span style={{ flex: 1, fontSize: 12.5, color: 'var(--sand)' }}>Este imóvel tem um vídeo atrelado.</span>
+                  <button onClick={() => { set({ video: '', videoUrl: '' }); setVideoArquivo(null); }}
+                    style={{ padding: '9px 14px', borderRadius: 9, border: '1px solid rgba(200,138,122,.4)', background: 'transparent', color: '#c88a7a', fontSize: 12.5, fontWeight: 700 }}>Remover vídeo</button>
+                </div>
+              )}
+              {editando && (imovel?.youtube_url || imovel?.video_file_url) && !form.video && !form.videoUrl && !videoArquivo && (
+                <div style={{ fontSize: 12, color: '#c8a87a', background: 'rgba(200,168,122,.08)', border: '1px solid rgba(200,168,122,.3)', borderRadius: 10, padding: '9px 13px' }}>
+                  O vídeo será removido do anúncio quando você salvar. O anúncio passa a abrir pelas fotos.
+                </div>
+              )}
+              <div style={{ display: 'flex', background: 'var(--bg-2)', borderRadius: 12, padding: 4, border: '1px solid var(--line)' }}>
+                {[['link', 'YouTube'], ['arquivo', 'Vídeo automático']].map(([k, l]) => (
+                  <button key={k} onClick={() => set({ videoMode: k })} style={{ flex: 1, padding: '11px 8px', borderRadius: 9, border: 0, fontSize: 13.5, fontWeight: (form.videoMode || 'link') === k ? 700 : 400, background: (form.videoMode || 'link') === k ? 'var(--accent)' : 'transparent', color: (form.videoMode || 'link') === k ? '#2A2117' : 'var(--taupe)' }}>{l}</button>
+                ))}
+              </div>
+              {(form.videoMode || 'link') === 'link' && (
+                <Field label="Link do tour no YouTube (vídeo ou Shorts)">
+                  <input value={form.video} onChange={e => set({ video: e.target.value })} placeholder="Cole o link… ex.: youtube.com/shorts/…" style={inp} />
+                  <Hint>Grátis e ilimitado. No computador roda sozinho; no celular o cliente toca pra assistir.</Hint>
+                  {vid && <div style={{ aspectRatio: '16/9', borderRadius: 14, background: `url("${ytThumb(vid)}") center/cover`, position: 'relative', marginTop: 4 }}><span style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(31,24,18,.8)', fontSize: 11, padding: '4px 9px', borderRadius: 5 }}>✓ Vídeo reconhecido</span></div>}
+                </Field>
+              )}
+              {(form.videoMode || 'link') === 'arquivo' && (
+                <Field label="Vídeo que roda sozinho (inclusive no iPhone)">
+                  <div style={{ background: 'rgba(232,168,124,.06)', border: '1px solid rgba(232,168,124,.22)', borderRadius: 12, padding: '12px 14px' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', marginBottom: 8 }}>OPÇÃO A — Colar link do vídeo (MP4) · sem limite de tamanho</div>
+                    <input value={form.videoUrl} onChange={e => set({ videoUrl: e.target.value })} placeholder="https://…/tour.mp4" style={inp} />
+                    <Hint>Link direto de um arquivo .mp4 (ex.: Cloudflare R2 — grátis). Ideal para tours grandes que rodam sozinhos no celular.</Hint>
+                    {form.videoUrl && /^https?:\/\/.+\.mp4/i.test(form.videoUrl) && (
+                      <div style={{ borderRadius: 12, overflow: 'hidden', background: '#000', marginTop: 8 }}>
+                        <video src={form.videoUrl.trim()} muted playsInline controls preload="metadata" style={{ width: '100%', maxHeight: 300, display: 'block' }} />
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--muted)', fontSize: 12 }}>
+                    <span style={{ flex: 1, height: 1, background: 'var(--line)' }}></span>ou<span style={{ flex: 1, height: 1, background: 'var(--line)' }}></span>
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--taupe)' }}>OPÇÃO B — Subir do celular · direto pro Cloudflare</div>
+                  {!videoArquivo && (
+                    <label style={{ position: 'relative', border: '2px dashed rgba(232,168,124,.4)', borderRadius: 14, padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: 'var(--accent)', cursor: 'pointer', background: 'rgba(232,168,124,.05)' }}>
+                      <input type="file" accept="video/*" onChange={onPickVideo} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                      <span style={{ fontSize: 24 }}>↑</span>
+                      <span style={{ fontSize: 14, fontWeight: 700 }}>Subir vídeo do celular</span>
+                      <span style={{ fontSize: 11.5, color: 'var(--taupe)' }}>Aceita os tours grandes (100 MB+). Deixe o app aberto até chegar em 100%.</span>
+                    </label>
+                  )}
+                  {videoArquivo && (
+                    <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', background: '#000' }}>
+                      <video src={videoArquivo.preview} muted playsInline controls style={{ width: '100%', maxHeight: 300, display: 'block' }} />
+                      <button onClick={() => setVideoArquivo(null)} style={{ position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: 999, background: 'rgba(31,24,18,.85)', color: 'var(--cream)', border: 0, fontSize: 16 }}>×</button>
+                    </div>
+                  )}
+                </Field>
+              )}
+              <Field label={`Fotos (${fotosSalvas.length + novasFotos.length})`}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                  {fotosSalvas.map((f, i) => (
+                    <div key={f.id} style={{ position: 'relative', aspectRatio: 1, borderRadius: 12, background: `url("${f.thumb_url || f.url}") center/cover` }}>
+                      <span style={{ position: 'absolute', top: 5, left: 5, background: 'rgba(31,24,18,.8)', color: 'var(--cream)', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5 }}>{i === 0 && !vid ? 'CAPA' : i + 1}</span>
+                      <div style={{ position: 'absolute', bottom: 5, left: 5, right: 5, display: 'flex', justifyContent: 'space-between' }}>
+                        <button onClick={() => moveFotoSalva(i, i - 1)} disabled={i === 0} style={fotoNav(i === 0)}>‹</button>
+                        <button onClick={() => apagarFotoSalva(f)} style={{ ...fotoNav(false), color: '#e8a79a' }}>×</button>
+                        <button onClick={() => moveFotoSalva(i, i + 1)} disabled={i === fotosSalvas.length - 1} style={fotoNav(i === fotosSalvas.length - 1)}>›</button>
+                      </div>
+                    </div>
+                  ))}
+                  {novasFotos.map((f, i) => (
+                    <div key={i}
+                      draggable
+                      onDragStart={() => setDragIdx(i)}
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={() => moveFoto(dragIdx, i)}
+                      style={{ position: 'relative', aspectRatio: 1, borderRadius: 12, background: `url("${f.preview}") center/cover`, cursor: 'grab', outline: dragIdx === i ? '2px solid var(--accent)' : 'none' }}>
+                      <span style={{ position: 'absolute', top: 5, left: 5, background: 'rgba(31,24,18,.8)', color: 'var(--cream)', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 5 }}>{i === 0 ? 'CAPA' : i + 1}</span>
+                      <div style={{ position: 'absolute', bottom: 5, left: 5, right: 5, display: 'flex', justifyContent: 'space-between' }}>
+                        <button onClick={() => moveFoto(i, i - 1)} disabled={i === 0} style={fotoNav(i === 0)}>‹</button>
+                        <button onClick={() => removeFoto(i)} style={{ ...fotoNav(false), color: '#e8a79a' }}>×</button>
+                        <button onClick={() => moveFoto(i, i + 1)} disabled={i === novasFotos.length - 1} style={fotoNav(i === novasFotos.length - 1)}>›</button>
+                      </div>
+                    </div>
+                  ))}
+                  <label style={{ position: 'relative', aspectRatio: 1, borderRadius: 12, border: '2px dashed rgba(243,237,227,.25)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--taupe)', cursor: 'pointer' }}>
+                    <input type="file" accept="image/*" multiple onChange={addFotos} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
+                    <span style={{ fontSize: 24 }}>+</span><span style={{ fontSize: 11.5 }}>Adicionar</span>
+                  </label>
+                </div>
+                <Hint>Arraste para reordenar (ou use ‹ ›). A 1ª foto é a capa. O × nas fotos já salvas apaga na hora; a ordem vale para o site e para o portal.</Hint>
+              </Field>
+              <Field label="Descrição (opcional)">
+                <button onClick={gerarDescricao} style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(232,168,124,.12)', border: '1px solid rgba(232,168,124,.45)', color: 'var(--accent)', padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>✦ Gerar descrição com o que já preenchi</button>
+                <textarea value={form.descricao} onChange={e => set({ descricao: e.target.value })} rows={10} placeholder="Detalhes do imóvel… (ou toque em Gerar descrição)" style={{ ...inp, resize: 'vertical' }} />
+                <Hint>Gera um rascunho a partir das informações do anúncio — revise e ajuste à vontade antes de salvar.</Hint>
+              </Field>
+            </>
+          )}
+
+          {step === 5 && (
+            <>
+              <h2 style={h2}>Título e revisão</h2>
+              <Field label="Título do anúncio">
+                <div style={{ background: 'rgba(232,168,124,.07)', border: '1px solid rgba(232,168,124,.25)', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', color: 'var(--accent)' }}>🔎 SUGESTÃO OTIMIZADA PARA O GOOGLE</div>
+                  <div style={{ fontSize: 14, color: 'var(--cream)', lineHeight: 1.45 }}>{seoTitle}</div>
+                  <button onClick={() => set({ titulo: seoTitle })} style={{ alignSelf: 'flex-start', background: 'var(--accent)', color: '#2A2117', padding: '9px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, border: 0 }}>Usar esta sugestão</button>
+                </div>
+                <input value={form.titulo} onChange={e => set({ titulo: e.target.value })} placeholder="Ou escreva o seu…" style={inp} />
+                <Hint>A sugestão é montada a partir das infos que você preencheu. Pode usá-la ou ajustar.</Hint>
+              </Field>
+              <Field label="Código do imóvel">
+                <input value={form.codigo} onChange={e => set({ codigo: e.target.value.toUpperCase() })} placeholder={codigoSugerido} style={inp} />
+                <Hint>Se deixar em branco, usamos <strong style={{ color: 'var(--accent)' }}>{codigoSugerido}</strong>. Aparece no anúncio e na mensagem do WhatsApp — facilita achar o imóvel internamente.</Hint>
+              </Field>
+
+              <div style={{ background: 'var(--bg-2)', border: `1px solid ${qual.score >= 80 ? 'rgba(168,192,143,.35)' : 'rgba(232,168,124,.3)'}`, borderRadius: 14, padding: '15px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <strong style={{ fontSize: 13.5, color: 'var(--cream-2)' }}>Força do anúncio nos portais</strong>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: qual.score >= 80 ? 'var(--green)' : 'var(--accent)' }}>{qual.score}%</span>
+                </div>
+                <div style={{ height: 7, borderRadius: 999, background: 'rgba(243,237,227,.1)', overflow: 'hidden' }}>
+                  <div style={{ width: `${qual.score}%`, height: '100%', background: qual.score >= 80 ? 'var(--green)' : qual.score >= 55 ? 'var(--accent)' : '#c88a7a' }}></div>
+                </div>
+                {qual.faltando.length === 0 ? (
+                  <div style={{ fontSize: 12.5, color: 'var(--green)' }}>✓ Anúncio completo — vai bem posicionado.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    {qual.faltando.map(it => (
+                      <div key={it.label} style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--sand)' }}>
+                        <span style={{ color: '#c8a87a', flex: 'none' }}>○</span>
+                        <span><strong>{it.label}</strong> <span style={{ color: 'var(--muted)' }}>— {it.dica}</span></span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--taupe)' }}>É assim que o anúncio aparece no site:</div>
+              <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 14, overflow: 'hidden' }}>
+                <div style={{ aspectRatio: '16/10', background: capaBg, position: 'relative' }}>
+                  {videoPreviewUrl && <video src={videoPreviewUrl} muted playsInline loop autoPlay preload="metadata" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                  <span style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(31,24,18,.85)', color: isAluguel ? 'var(--accent)' : 'var(--green)', fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', padding: '5px 10px', borderRadius: 6 }}>{isAluguel ? 'ALUGUEL' : 'VENDA'}</span>
+                </div>
+                <div style={{ padding: '16px 18px' }}>
+                  <div style={{ fontSize: 19, fontWeight: 700, color: 'var(--cream-2)' }}>{form.preco ? formatPreco(parsePreco(form.preco)) : 'R$ —'}<span style={{ fontSize: 12.5, color: 'var(--taupe)' }}>{isAluguel ? '/mês' : ''}</span></div>
+                  <div style={{ fontSize: 13.5, color: 'var(--sand)', margin: '5px 0 10px' }}>{form.titulo || seoTitle} · {form.bairro || 'João Pessoa'}</div>
+                  <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--muted)', flexWrap: 'wrap' }}>
+                    <span>{form.quartos} quartos</span><span>{form.banheiros} banh.</span><span>{form.vagas} vagas</span><span>{form.area || '—'} m²</span><span>{MOBILIA_LABELS[form.mobilia]}</span>
+                  </div>
+                </div>
+              </div>
+              {erro && <div style={{ color: '#e88a7a', fontSize: 13 }}>{erro}</div>}
+            </>
+          )}
+
+          {step === 6 && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, paddingTop: 60, textAlign: 'center' }}>
+              {avisoVideo && (
+                <div style={{ textAlign: 'left', fontSize: 12.5, color: '#e8a79a', background: 'rgba(200,138,122,.1)', border: '1px solid rgba(200,138,122,.35)', borderRadius: 12, padding: '12px 14px', lineHeight: 1.55 }}>⚠️ {avisoVideo}</div>
+              )}
+              <div style={{ width: 72, height: 72, borderRadius: 999, background: 'rgba(168,192,143,.15)', border: '1px solid rgba(168,192,143,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, color: 'var(--green)' }}>✓</div>
+              <h2 style={{ ...h2, fontSize: 26 }}>{editando ? 'Alterações salvas!' : 'Anúncio publicado!'}</h2>
+              <p style={{ fontSize: 14, color: 'var(--taupe)', maxWidth: 280, lineHeight: 1.55 }}>{form.titulo || seoTitle} já está no ar em {form.bairro || 'João Pessoa'}.</p>
+              <a href="/admin/novo" style={{ marginTop: 12, background: 'var(--accent)', color: '#2A2117', padding: '15px 28px', borderRadius: 12, fontSize: 15, fontWeight: 700 }}>Cadastrar outro imóvel</a>
+              <a href="/admin" style={{ padding: '13px 28px', borderRadius: 12, border: '1px solid rgba(243,237,227,.25)', color: 'var(--cream)', fontSize: 14, fontWeight: 600 }}>Ver meus imóveis</a>
+            </div>
+          )}
+        </div>
+
+        {step < 6 && (
+          <div style={{ position: 'sticky', bottom: 0, padding: '14px 20px 20px', background: 'linear-gradient(to top,var(--bg) 65%,transparent)' }}>
+            <button onClick={next} disabled={salvando} style={{ width: '100%', height: 54, borderRadius: 14, background: 'var(--accent)', color: '#2A2117', fontSize: 16, fontWeight: 700, border: 0 }}>
+              {salvando ? (videoPct > 0 && videoPct < 100 ? `Enviando vídeo… ${videoPct}%` : 'Salvando…') : step === 5 ? (editando ? 'Salvar alterações' : 'Publicar imóvel') : 'Continuar'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {wide && step < 6 && (
+        <div style={{ width: 320, flex: 'none', position: 'sticky', top: 0, alignSelf: 'flex-start', padding: '32px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ fontSize: 11, letterSpacing: '.18em', color: 'var(--taupe)', fontWeight: 700 }}>PRÉVIA NO SITE</div>
+          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ position: 'relative', aspectRatio: '9/16', background: capaBg }}>
+              {videoPreviewUrl && <video src={videoPreviewUrl} muted playsInline loop autoPlay preload="metadata" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+              {semMidia && (
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'rgba(243,237,227,.45)', fontSize: 12, textAlign: 'center', padding: 20 }}>
+                  <span style={{ fontSize: 22 }}>▶</span>
+                  Sem vídeo nem foto ainda—<br />adicione no passo “Vídeo e fotos”
+                </div>
+              )}
+              <span style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(31,24,18,.85)', color: isAluguel ? 'var(--accent)' : 'var(--green)', fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', padding: '5px 10px', borderRadius: 6 }}>{isAluguel ? 'ALUGUEL' : 'VENDA'}</span>
+              {(vid || videoPreviewUrl) && <span style={{ position: 'absolute', bottom: 12, left: 12, width: 30, height: 30, borderRadius: 999, background: 'rgba(243,237,227,.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2A2117', fontSize: 12 }}>▶</span>}
+            </div>
+            <div style={{ padding: '14px 16px 16px' }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--cream-2)' }}>{form.preco ? formatPreco(parsePreco(form.preco)) : 'R$ —'}<span style={{ fontSize: 12, color: 'var(--taupe)' }}>{isAluguel ? '/mês' : ''}</span></div>
+              <div style={{ fontSize: 12.5, color: 'var(--sand)', margin: '4px 0 9px' }}>{form.titulo || seoTitle} · {form.bairro || 'João Pessoa'}</div>
+              <div style={{ display: 'flex', gap: '8px 11px', fontSize: 11, color: 'var(--muted)', flexWrap: 'wrap' }}>
+                <span>{form.quartos} quartos</span><span>{form.banheiros} banh.</span><span>{form.vagas} vagas</span><span>{form.area || '—'} m²</span><span>{MOBILIA_LABELS[form.mobilia]}</span>
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>Atualiza em tempo real conforme você preenche.</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const inp = { width: '100%', boxSizing: 'border-box', background: 'var(--bg-2)', border: '1px solid rgba(243,237,227,.15)', borderRadius: 12, padding: '15px 16px', fontSize: 16, color: 'var(--cream)' };
+const maskCep = (v) => {
+  const n = String(v).replace(/\D/g, '').slice(0, 8);
+  return n.length > 5 ? `${n.slice(0, 5)}-${n.slice(5)}` : n;
+};
+const dinInp = { display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-2)', border: '1px solid rgba(243,237,227,.15)', borderRadius: 12, padding: '0 14px' };
+const dinR = { fontSize: 14, color: 'var(--muted)' };
+const dinField = { flex: 1, minWidth: 0, background: 'transparent', border: 0, padding: '15px 0', fontSize: 16, color: 'var(--cream)' };
+const h2 = { fontSize: 24, color: 'var(--cream-2)', margin: 0 };
+const bigOpt = (sel) => ({ padding: '22px 16px', borderRadius: 14, border: `2px solid ${sel ? 'var(--accent)' : 'rgba(243,237,227,.15)'}`, background: sel ? 'rgba(232,168,124,.1)' : 'var(--bg-2)', textAlign: 'center', cursor: 'pointer' });
+const counterBtn = (filled) => ({ width: 44, height: 44, borderRadius: 999, border: filled ? 0 : '1px solid rgba(243,237,227,.2)', background: filled ? 'var(--accent)' : 'transparent', color: filled ? '#2A2117' : 'var(--sand)', fontSize: 20 });
+const fotoNav = (disabled) => ({ width: 26, height: 26, borderRadius: 7, border: 0, background: 'rgba(31,24,18,.8)', color: 'var(--cream)', fontSize: 15, lineHeight: 1, opacity: disabled ? 0.3 : 1, cursor: disabled ? 'default' : 'pointer' });
+
+function Label({ children }) { return <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sand)', marginTop: 6 }}>{children}</div>; }
+function Hint({ children }) { return <span style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{children}</span>; }
+function Field({ label, children }) { return <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}><span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sand)' }}>{label}</span>{children}</div>; }
+function UtilField({ label, value, onPick }) {
+  const v = value || 'nao_informado';
+  const opts = [['incluso', 'Incluso'], ['individual', 'Individual'], ['nao_informado', 'Não informar']];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sand)' }}>{label}</span>
+      <div style={{ display: 'flex', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10, padding: 3 }}>
+        {opts.map(([k, l]) => (
+          <button key={k} onClick={() => onPick(k)} style={{ flex: 1, padding: '9px 2px', borderRadius: 7, border: 0, fontSize: 11.5, fontWeight: v === k ? 700 : 400, background: v === k ? 'var(--accent)' : 'transparent', color: v === k ? '#2A2117' : 'var(--taupe)' }}>{l}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TaxaField({ label, tipo, valor, onTipo, onValor, aluguel }) {
+  const t = (tipo === 'incluso' && !aluguel) ? 'isento' : (tipo || 'valor');
+  const opts = [['valor', 'Valor'], ...(aluguel ? [['incluso', 'Incluso']] : [['isento', 'Isento']]), ['nao_informado', 'Não informar']];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--sand)' }}>{label}</span>
+      <div style={{ display: 'flex', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 10, padding: 3 }}>
+        {opts.map(([k, l]) => (
+          <button key={k} onClick={() => onTipo(k)}
+            style={{ flex: 1, padding: '9px 4px', borderRadius: 7, border: 0, fontSize: 12, fontWeight: t === k ? 700 : 400, background: t === k ? 'var(--accent)' : 'transparent', color: t === k ? '#2A2117' : 'var(--taupe)' }}>{l}</button>
+        ))}
+      </div>
+      {t === 'valor' && (
+        <div style={dinInp}><span style={dinR}>R$</span>
+          <input value={maskThousands(valor)} onChange={e => onValor(onlyDigits(e.target.value))} placeholder="0" inputMode="numeric" style={dinField} />
+        </div>
+      )}
+      {t === 'isento' && <Hint>Aparece como <strong style={{ color: 'var(--green)' }}>Isento</strong> no anúncio.</Hint>}
+      {t === 'incluso' && <Hint>Aparece como <strong style={{ color: 'var(--green)' }}>Incluso no aluguel</strong> — o valor já está dentro do preço.</Hint>}
+      {t === 'nao_informado' && <Hint>Não aparece no anúncio — sem prometer valor que não sabemos.</Hint>}
+    </div>
+  );
+}
+
+function Chips({ opts, value, onPick }) {
+  return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>{opts.map(([k, l]) => (
+    <button key={k} onClick={() => onPick(k)} style={{ padding: '12px 18px', borderRadius: 999, fontSize: 14, fontWeight: value === k ? 700 : 400, border: `1px solid ${value === k ? 'var(--accent)' : 'rgba(243,237,227,.2)'}`, background: value === k ? 'rgba(232,168,124,.12)' : 'transparent', color: value === k ? 'var(--accent)' : 'var(--sand)' }}>{l}</button>
+  ))}</div>;
+}

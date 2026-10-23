@@ -1,0 +1,350 @@
+'use client';
+import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { ytId, ytThumb, ytEmbed, MOBILIA_LABELS, whatsappLink, formatPreco } from '../../../lib/format';
+import { trackViewImovel, trackEvento } from '../../../lib/track';
+import { ultimaBusca } from '../../../lib/busca';
+import CardImovel from '../../CardImovel';
+import IconeWhats from '../../IconeWhats';
+import FormWhats from '../../FormWhats';
+import { organizaDescricao } from '../../../lib/descricao';
+
+export default function DetailClient({ im, precoFmt, parecidos = [], whats }) {
+  const vid = ytId(im.youtube_url);
+  const nativo = !vid && im.video_file_url;
+  const fotos = Array.isArray(im.fotos) ? im.fotos : [];
+  const slides = ((vid || nativo) ? [{ video: true }] : []).concat(fotos.map(f => ({ bg: f.url || f, thumb: f.thumb_url || null })));
+  if (slides.length === 0) slides.push({ bg: im.capa_url || '' });
+  const [idx, setIdx] = useState(0);
+  const [origin, setOrigin] = useState('');
+  const [full, setFull] = useState(false);
+  // "Voltar aos imóveis" leva para a mesma busca que a pessoa tinha feito (filtros e posição na lista)
+  const [voltar, setVoltar] = useState('/#lista');
+  const [isMobile, setIsMobile] = useState(false);
+  // Botões de WhatsApp abrem o mini formulário (nome + WhatsApp); o SDR chama a pessoa
+  const [formWa, setFormWa] = useState(false);
+  const abrirForm = (e) => { e.preventDefault(); trackEvento('tocou_whats_cta'); trackEvento('abriu_form'); setFormWa(true); };
+  useEffect(() => {
+    setOrigin(window.location.origin);
+    setVoltar('/' + ultimaBusca() + '#lista');
+    const mq = window.matchMedia('(max-width: 720px)');
+    const on = () => setIsMobile(mq.matches);
+    on(); mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  useEffect(() => { trackViewImovel(im); }, [im?.id]);
+  const ehAluguel = im.finalidade === 'aluguel';
+  // capa do vídeo: aparece na hora enquanto o vídeo carrega
+  const poster = (fotos[0] && (fotos[0].url || fotos[0])) || im.capa_url || undefined;
+  useEffect(() => {
+    if (!full) return;
+    const el = fullTrackRef.current;
+    if (el) el.scrollLeft = el.clientWidth * idx;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setFull(false);
+      if (e.key === 'ArrowRight') go(idx + 1);
+      if (e.key === 'ArrowLeft') go(idx - 1);
+    };
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+  }, [full, idx, slides.length]);
+  // swipe: trilha com rolagem nativa (fluido no celular) — sincroniza o índice
+  const trackRef = useRef(null);
+  const fullTrackRef = useRef(null);
+  const scrollTo = (ref, k) => {
+    const el = ref.current;
+    if (!el) return;
+    el.scrollTo({ left: el.clientWidth * k, behavior: 'smooth' });
+  };
+  const onTrackScroll = (e) => {
+    const el = e.currentTarget;
+    const k = Math.round(el.scrollLeft / el.clientWidth);
+    if (k !== idx) setIdx(Math.max(0, Math.min(slides.length - 1, k)));
+  };
+  const go = (k) => {
+    const t = Math.max(0, Math.min(slides.length - 1, k));
+    setIdx(t);
+    scrollTo(full ? fullTrackRef : trackRef, t);
+  };
+  const cur = slides[idx] || {};
+  const temVideo = !!(vid || nativo);
+  // abre a foto k (das fotos, sem contar o vídeo) direto na tela cheia
+  const abrirFoto = (k) => {
+    const t = Math.max(0, Math.min(slides.length - 1, k + (temVideo ? 1 : 0)));
+    setIdx(t);
+    const el = trackRef.current; if (el) el.scrollLeft = el.clientWidth * t;
+    trackEvento('abriu_fotos');
+    setFull(true);
+  };
+  const wa = whatsappLink(`Olá! Tenho interesse no imóvel ${im.codigo ? `(cód. ${im.codigo}) ` : ''}"${im.titulo}" no ${im.bairro}. Pode me passar mais informações?`, whats);
+
+  const taxa = (tipo, cents) => tipo === 'isento' ? 'Isento'
+    : tipo === 'incluso' ? 'Incluso no aluguel'
+    : tipo === 'nao_informado' ? null
+    : (cents ? formatPreco(cents) : null);
+
+  const feats = [
+    ['Quartos', im.quartos], ['Banheiros', im.banheiros], ['Vagas', im.vagas],
+    ['Área', im.area_m2 ? `${im.area_m2} m²` : null], ['Andar', im.andar], ['Posição do sol', im.posicao_solar], ['Tipo', im.categoria], ['Mobília', MOBILIA_LABELS[im.mobilia]],
+    ['Condomínio', taxa(im.condominio_tipo, im.condominio_cents)], ['IPTU', taxa(im.iptu_tipo, im.iptu_cents)]
+  ].filter(([, v]) => v);
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      <header className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, paddingTop: 14, paddingBottom: 14, borderBottom: '1px solid var(--line)' }}>
+        <Link href="/imoveis" style={{ display: 'flex', alignItems: 'center' }} aria-label="Imóveis">
+          <img src="/logo-jason-dias.jpg" alt="Jason Dias Imóveis" style={{ height: 34, width: 'auto', mixBlendMode: 'screen' }} />
+        </Link>
+        <a href={wa} target="_blank" rel="noopener" onClick={abrirForm} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--wa)', color: 'var(--wa-texto)', padding: '10px 16px', borderRadius: 8, fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap' }}><IconeWhats size={16} />WhatsApp</a>
+      </header>
+
+      <div className="container" style={{ paddingTop: 20, paddingBottom: isMobile ? 40 : 90 }}>
+        <Link href={voltar} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--taupe)', padding: '10px 0' }}>← Voltar aos imóveis</Link>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 48, alignItems: 'flex-start' }}>
+          {/* MÍDIA */}
+          <div style={{ width: 360, maxWidth: '100%', flex: '1 1 320px' }}>
+          <div style={{ width: '100%', position: 'relative', aspectRatio: '9/16', maxHeight: isMobile ? 'min(640px, 68vh)' : 640, borderRadius: 18, overflow: 'hidden', background: 'linear-gradient(150deg,#6B5A44,#463928)', boxShadow: '0 20px 60px rgba(0,0,0,.4)' }}>
+            <div ref={trackRef} onScroll={onTrackScroll} className="no-scrollbar"
+              style={{ position: 'absolute', inset: 0, display: 'flex', overflowX: 'auto', overflowY: 'hidden', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+              {slides.map((s, k) => (
+                <div key={k} style={{ flex: '0 0 100%', width: '100%', height: '100%', position: 'relative', scrollSnapAlign: 'center', scrollSnapStop: 'always' }}>
+                  {s.video ? (
+                    vid ? (
+                      <iframe src={ytEmbed(vid, { controls: 1, origin })} referrerPolicy="strict-origin-when-cross-origin" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }} allow="autoplay; encrypted-media" allowFullScreen title={im.titulo} />
+                    ) : (
+                      <video src={im.video_file_url} poster={poster} controls autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                    )
+                  ) : (
+                    <>
+                      {s.thumb && <img src={s.thumb} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(6px)', transform: 'scale(1.04)' }} />}
+                      <img src={s.bg} alt={`${im.titulo} — foto ${k}`} onClick={() => setFull(true)}
+                        loading={k <= 2 ? 'eager' : 'lazy'} fetchPriority={k <= 1 ? 'high' : 'auto'} decoding="async"
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }} />
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+            {/* SELO: avisa que tem fotos além do vídeo e abre a galeria em tela cheia */}
+            {cur.video && fotos.length > 0 && (
+              <button onClick={() => abrirFoto(0)} aria-label={`Ver as ${fotos.length} fotos`}
+                style={{ position: 'absolute', right: 12, bottom: 92, display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(31,24,18,.82)', color: '#F3EDE3', border: '1px solid rgba(243,237,227,.25)', borderRadius: 999, padding: '9px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', zIndex: 6, backdropFilter: 'blur(6px)' }}>
+                <span aria-hidden="true" style={{ fontSize: 15 }}>📷</span>{fotos.length} fotos <span aria-hidden="true" style={{ opacity: .75 }}>›</span>
+              </button>
+            )}
+            {!cur.video && (
+              <button onClick={() => setFull(true)} style={{ position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(31,24,18,.75)', color: '#F3EDE3', border: 0, borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', zIndex: 6 }}>⤢ Tela cheia</button>
+            )}
+            {idx > 0 && <button onClick={() => go(idx - 1)} style={navBtn('left')}>‹</button>}
+            {idx < slides.length - 1 && <button onClick={() => go(idx + 1)} style={navBtn('right')}>›</button>}
+            <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6, zIndex: 6 }}>
+              {slides.map((_, k) => (
+                <button key={k} onClick={() => go(k)} style={{ width: k === idx ? 20 : 6, height: 6, borderRadius: 999, border: 0, background: k === idx ? 'var(--accent)' : 'rgba(243,237,227,.5)', cursor: 'pointer', padding: 0 }} />
+              ))}
+            </div>
+          </div>
+            {/* FOTOS embaixo do vídeo: muita gente não percebe que dá para deslizar */}
+            {fotos.length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--cream-2)' }}>{fotos.length} {fotos.length === 1 ? 'foto' : 'fotos'}</span>
+                  <button onClick={() => abrirFoto(0)} style={{ background: 'none', border: 0, padding: 0, color: 'var(--accent)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Ver todas em tela cheia</button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>
+                  {fotos.slice(0, 6).map((f, k) => (
+                    <button key={k} onClick={() => abrirFoto(k)} aria-label={`Abrir foto ${k + 1}`}
+                      style={{ position: 'relative', aspectRatio: '1', padding: 0, border: 0, borderRadius: 8, overflow: 'hidden', background: 'var(--bg-2)', cursor: 'zoom-in' }}>
+                      <img src={f.thumb_url || f.url || f} alt="" loading="lazy" decoding="async" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                      {k === 5 && fotos.length > 6 && (
+                        <span style={{ position: 'absolute', inset: 0, background: 'rgba(15,11,8,.62)', color: '#FAF7F2', display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 800 }}>+{fotos.length - 6}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* INFO */}
+          <div style={{ flex: '2 1 380px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 22 }}>
+            <div>
+              <span style={{ display: 'inline-flex', background: 'rgba(31,24,18,.6)', border: '1px solid var(--line)', color: im.finalidade === 'aluguel' ? 'var(--accent)' : 'var(--green)', fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', padding: '6px 12px', borderRadius: 6, marginBottom: 14 }}>{im.finalidade === 'aluguel' ? 'ALUGUEL' : 'VENDA'}</span>
+              {im.codigo && <span style={{ display: 'inline-flex', marginLeft: 8, background: 'var(--bg-2)', border: '1px solid var(--line)', color: 'var(--taupe)', fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', padding: '6px 12px', borderRadius: 6, marginBottom: 14 }}>CÓD. {im.codigo}</span>}
+              <h1 style={{ fontSize: 32, lineHeight: 1.15, color: 'var(--cream-2)', margin: 0 }}>{im.titulo}</h1>
+              <div style={{ fontSize: 15, color: 'var(--taupe)', marginTop: 8 }}>{im.bairro} · João Pessoa</div>
+            </div>
+            <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--accent)' }}>{precoFmt}<span style={{ fontSize: 15, fontWeight: 400, color: 'var(--taupe)' }}>{im.finalidade === 'aluguel' ? '/mês' : ''}</span></div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, maxWidth: 440 }}>
+              {feats.map(([label, value]) => (
+                <div key={label} style={{ background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 12, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--cream-2)' }}>{value}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{label}</div>
+                </div>
+              ))}
+            </div>
+
+            {im.descricao && <Descricao texto={im.descricao} />}
+
+            <Localizacao im={im} />
+
+            <a href={wa} target="_blank" rel="noopener" onClick={abrirForm} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'var(--wa)', color: 'var(--wa-texto)', padding: 16, borderRadius: 12, fontSize: 15.5, fontWeight: 800, maxWidth: 440 }}><IconeWhats size={20} />Tenho interesse — falar no WhatsApp</a>
+            <p style={{ fontSize: 12, lineHeight: 1.55, color: 'var(--muted)', margin: 0, maxWidth: 440 }}>
+              Valores de condomínio e IPTU são informativos e podem sofrer alterações ou conter imprecisões. Imóvel sujeito a disponibilidade.
+            </p>
+          </div>
+        </div>
+      </div>
+      {/* IMÓVEIS PARECIDOS — a pessoa continua olhando sem precisar voltar */}
+      {parecidos.length > 0 && (
+        <section className="container" style={{ paddingTop: isMobile ? 8 : 0, paddingBottom: isMobile ? 110 : 80 }}>
+          <div style={{ borderTop: '1px solid var(--line)', paddingTop: isMobile ? 26 : 40 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: isMobile ? 14 : 22 }}>
+              <h2 style={{ fontSize: isMobile ? 21 : 26, color: 'var(--cream-2)', margin: 0 }}>{ehAluguel ? 'Outros imóveis para alugar' : 'Outros imóveis à venda'}</h2>
+              <Link href={`/?f=${ehAluguel ? 'aluguel' : 'venda'}#lista`} style={{ fontSize: 13.5, fontWeight: 700 }}>Ver todos →</Link>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fill,minmax(210px,1fr))', gap: isMobile ? 12 : 20 }}>
+              {parecidos.map(p => <CardImovel key={p.id} im={p} compacto={isMobile} autoVideo umPorVez={isMobile} origin={origin} />)}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: isMobile ? 20 : 28 }}>
+              <Link href={`/?f=${ehAluguel ? 'aluguel' : 'venda'}#lista`} style={{ border: '1px solid rgba(232,168,124,.5)', color: 'var(--accent)', padding: '12px 22px', borderRadius: 10, fontSize: 14, fontWeight: 700 }}>
+                {ehAluguel ? 'Ver todos os imóveis para alugar' : 'Ver todos os imóveis à venda'}
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+      {parecidos.length === 0 && isMobile && <div style={{ height: 90 }} />}
+
+      {/* BARRA FIXA NO CELULAR: preço + WhatsApp sempre à mão */}
+      {isMobile && !full && (
+        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 50, background: 'rgba(31,24,18,.96)', backdropFilter: 'blur(10px)', borderTop: '1px solid rgba(243,237,227,.12)', padding: '10px 16px calc(10px + env(safe-area-inset-bottom))', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cream-2)', whiteSpace: 'nowrap' }}>{precoFmt}<span style={{ fontSize: 12, fontWeight: 400, color: 'var(--taupe)' }}>{ehAluguel ? '/mês' : ''}</span></div>
+            <div style={{ fontSize: 11.5, color: 'var(--taupe)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{im.bairro}{im.codigo ? ` · ${im.codigo}` : ''}</div>
+          </div>
+          <a href={wa} target="_blank" rel="noopener" onClick={abrirForm}
+            style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, background: 'var(--wa)', color: 'var(--wa-texto)', padding: '13px 18px', borderRadius: 12, fontSize: 15, fontWeight: 800 }}>
+            <IconeWhats size={18} />
+            WhatsApp
+          </a>
+        </div>
+      )}
+
+      {/* TELA CHEIA */}
+      {full && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#0F0B08' }}>
+          <div ref={fullTrackRef} onScroll={onTrackScroll} className="no-scrollbar"
+            style={{ position: 'absolute', inset: 0, display: 'flex', overflowX: 'auto', overflowY: 'hidden', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+            {slides.map((s, k) => (
+              <div key={k} style={{ flex: '0 0 100%', width: '100%', height: '100%', scrollSnapAlign: 'center', scrollSnapStop: 'always', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {s.video ? (
+                  vid ? (
+                    <iframe src={ytEmbed(vid, { controls: 1, origin })} referrerPolicy="strict-origin-when-cross-origin" style={{ width: 'min(100vw, 56.25vh)', height: 'min(100vh, 177.78vw)', border: 0 }} allow="autoplay; encrypted-media" allowFullScreen title={im.titulo} />
+                  ) : (
+                    <video src={im.video_file_url} poster={poster} controls autoPlay muted loop playsInline style={{ maxWidth: '100vw', maxHeight: '100vh' }} />
+                  )
+                ) : (
+                  <img src={s.bg} alt={`${im.titulo} — foto ${k}`} loading={Math.abs(k - idx) <= 1 ? 'eager' : 'lazy'} decoding="async"
+                    style={{ maxWidth: '100vw', maxHeight: '100vh', objectFit: 'contain' }} />
+                )}
+              </div>
+            ))}
+          </div>
+
+          <button onClick={() => setFull(false)} aria-label="Fechar"
+            style={{ position: 'fixed', top: 16, right: 16, width: 44, height: 44, borderRadius: 999, background: 'rgba(243,237,227,.14)', color: '#F3EDE3', border: 0, fontSize: 22, cursor: 'pointer', zIndex: 102 }}>×</button>
+
+          <div style={{ position: 'fixed', top: 22, left: 20, fontSize: 13, color: 'rgba(243,237,227,.7)', letterSpacing: '.04em', zIndex: 102 }}>{idx + 1} / {slides.length}</div>
+
+          {idx > 0 && <button onClick={() => go(idx - 1)} style={fullNav('left')}>‹</button>}
+          {idx < slides.length - 1 && <button onClick={() => go(idx + 1)} style={fullNav('right')}>›</button>}
+
+          <div style={{ position: 'fixed', bottom: 18, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, padding: '8px 10px', background: 'rgba(31,24,18,.6)', borderRadius: 12, maxWidth: 'calc(100vw - 40px)', overflowX: 'auto', zIndex: 102 }}>
+            {slides.map((s, k) => (
+              <button key={k} onClick={() => go(k)} style={{ width: 44, height: 44, flex: 'none', borderRadius: 8, border: k === idx ? '2px solid var(--accent)' : '2px solid transparent', padding: 0, overflow: 'hidden', background: s.video ? '#2A2117' : `url("${s.thumb || s.bg}") center/cover`, color: '#F3EDE3', fontSize: 14, cursor: 'pointer' }}>{s.video ? '▶' : ''}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      <FormWhats aberto={formWa} onFechar={() => setFormWa(false)} im={im} wa={wa} />
+    </div>
+  );
+}
+
+const fullNav = (side) => ({
+  position: 'fixed', [side]: 14, top: '50%', transform: 'translateY(-50%)',
+  width: 52, height: 52, borderRadius: 999, background: 'rgba(243,237,227,.14)', color: '#F3EDE3',
+  border: 0, fontSize: 26, cursor: 'pointer', zIndex: 101
+});
+
+const navBtn = (side) => ({
+  position: 'absolute', [side]: 10, top: '50%', transform: 'translateY(-50%)',
+  width: 44, height: 44, borderRadius: 999, background: 'rgba(31,24,18,.75)', color: '#F3EDE3',
+  border: 0, fontSize: 22, cursor: 'pointer', zIndex: 5
+});
+
+// Descrição organizada: abertura em texto, características em lista (uma embaixo da outra)
+function Descricao({ texto }) {
+  const { paragrafos, itens, notas } = organizaDescricao(texto);
+  const [todas, setTodas] = useState(false);
+  const LIMITE = 12;
+  const recolhe = itens.length > LIMITE + 4; // só recolhe lista grande
+  const visiveis = todas || !recolhe ? itens : itens.slice(0, LIMITE);
+  if (!paragrafos.length && !itens.length && !notas.length) return null;
+  return (
+    <div style={{ maxWidth: 560 }}>
+      {paragrafos.map((t, k) => <p key={k} style={{ fontSize: 14.5, color: 'var(--sand)', lineHeight: 1.65, margin: k ? '10px 0 0' : 0 }}>{t}</p>)}
+      {itens.length > 0 && (
+        <div style={{ marginTop: paragrafos.length ? 18 : 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.12em', color: 'var(--taupe)', marginBottom: 10 }}>O QUE O IMÓVEL TEM</div>
+          <ul className="desc-itens" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: '8px 18px' }}>
+            {visiveis.map((t) => (
+              <li key={t} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 14.5, color: 'var(--cream-2)', lineHeight: 1.4 }}>
+                <span aria-hidden="true" style={{ flex: '0 0 18px', height: 18, marginTop: 1, borderRadius: 999, background: 'rgba(232,168,124,.16)', color: 'var(--accent)', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 800 }}>✓</span>
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
+          {recolhe && (
+            <button onClick={() => setTodas(!todas)} style={{ marginTop: 12, background: 'none', border: 0, padding: 0, color: 'var(--accent)', fontSize: 13.5, fontWeight: 700, cursor: 'pointer' }}>
+              {todas ? 'Mostrar menos' : `Ver todas as ${itens.length} características`}
+            </button>
+          )}
+        </div>
+      )}
+      {notas.length > 0 && (
+        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {notas.map((t, k) => <p key={k} style={{ fontSize: 14.5, color: 'var(--sand)', lineHeight: 1.6, margin: 0 }}>{t}</p>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Localização aproximada: rua (sem número) e bairro. O mapa só carrega quando a pessoa toca,
+// para não pesar a página. O endereço exato continua indo só pelo WhatsApp.
+function Localizacao({ im }) {
+  const [mapa, setMapa] = useState(false);
+  const cidade = im.cidade || 'João Pessoa';
+  const q = [im.rua, im.bairro, cidade, 'PB'].filter(Boolean).join(', ');
+  const src = `https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=${im.rua ? 15 : 14}&output=embed`;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 12, padding: '16px 18px', maxWidth: 440 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--cream-2)' }}>📍 {im.bairro} · {cidade}</div>
+      {im.rua && <div style={{ fontSize: 13, color: 'var(--sand)' }}>{im.rua}</div>}
+      {im.referencia && <div style={{ fontSize: 13, color: 'var(--taupe)', lineHeight: 1.5 }}>{im.referencia}</div>}
+      {mapa ? (
+        <iframe src={src} title={`Localização aproximada — ${im.bairro}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+          style={{ width: '100%', height: 230, border: 0, borderRadius: 10, marginTop: 4, background: 'var(--bg)' }} />
+      ) : (
+        <button onClick={() => setMapa(true)} style={{ marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', background: 'rgba(232,168,124,.1)', color: 'var(--accent)', border: '1px solid rgba(232,168,124,.35)', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+          🗺️ Ver a região no mapa
+        </button>
+      )}
+      <div style={{ fontSize: 12, color: 'var(--muted)' }}>🔒 Localização aproximada. O endereço exato vai no WhatsApp.</div>
+    </div>
+  );
+}

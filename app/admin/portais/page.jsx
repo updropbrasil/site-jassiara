@@ -1,0 +1,26 @@
+import { redirect } from 'next/navigation';
+import { createClient } from '../../../lib/supabase-server';
+import PortaisClient from './PortaisClient';
+
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Portais', robots: { index: false } };
+
+export default async function PortaisPage() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/admin/login');
+
+  const [rImoveis, rCfg, rLeads] = await Promise.all([
+    supabase.from('imoveis').select('*, imovel_fotos(url, wide_url, ordem)').order('created_at', { ascending: false }),
+    supabase.from('site_config').select('key, value').in('key', ['zap_email', 'zap_nome', 'zap_telefone']),
+    supabase.from('leads').select('imovel_id'),
+  ]);
+
+  const c = {};
+  (rCfg.data || []).forEach(r => { c[r.key] = r.value; });
+
+  const leadCount = {};
+  (rLeads.data || []).forEach(r => { if (r.imovel_id) leadCount[r.imovel_id] = (leadCount[r.imovel_id] || 0) + 1; });
+
+  return <PortaisClient initialImoveis={rImoveis.data || []} initialEmail={c.zap_email || ''} leadCount={leadCount} />;
+}

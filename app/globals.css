@@ -1,0 +1,53 @@
+:root {
+  --wa: #25D366;
+  --wa-texto: #0B2915;
+  --bg: #1F1812;
+  --bg-2: #2A2117;
+  --bg-3: #151009;
+  --cream: #F3EDE3;
+  --cream-2: #FAF7F2;
+  --sand: #D8C9B2;
+  --taupe: #B9A488;
+  --muted: #9c8d77;
+  --accent: #E8A87C;
+  --accent-hover: #f0c09e;
+  --green: #A8C08F;
+  --line: rgba(243,237,227,.09);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--cream);
+  font-family: 'Karla', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, .serif { font-family: 'Marcellus', serif; font-weight: 400; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+img { display: block; max-width: 100%; }
+input, select, button, textarea { font-family: inherit; }
+input:focus, textarea:focus { outline: 2px solid rgba(232,168,124,.5); }
+button { cursor: pointer; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+.container { max-width: 1560px; margin: 0 auto; padding: 0 56px; }
+@media (max-width: 720px) { .container { padding: 0 20px; } }
+
+/* cabeçalho da home e itens só do computador (resolvido no CSS para o celular já abrir no tamanho certo) */
+.cab-home { padding: 16px 56px; }
+@media (max-width: 720px) {
+  .cab-home { padding: 14px 20px; }
+  .so-pc { display: none !important; }
+}
+
+/* Formulário do WhatsApp: no celular sobe de baixo; no computador fica no meio */
+@media (min-width: 721px) {
+  .form-whats { border-radius: 18px !important; margin-top: auto; margin-bottom: auto; }
+}
+
+/* características do imóvel: 1 coluna no celular, 2 no computador */
+.desc-itens { grid-template-columns: 1fr; }
+@media (min-width: 520px) { .desc-itens { grid-template-columns: 1fr 1fr; } }
