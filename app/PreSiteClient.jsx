@@ -36,6 +36,7 @@ export default function PreSiteClient({ cfg, botoes }) {
   const whats = cfg.presite_whatsapp || '';
   const insta = (cfg.presite_instagram || '').replace(/^@/, '');
   const foto = cfg.presite_foto_url || '';
+  const retrato = cfg.presite_retrato_url || ''; // foto dela recortada (PNG/WebP sem fundo) ao lado do logo
   const logo = cfg.presite_logo_url || '/brand/logo-verde.png';
   const nome = cfg.presite_titulo || 'Jassiara Vasconcelos';
 
@@ -46,17 +47,20 @@ export default function PreSiteClient({ cfg, botoes }) {
   }
 
   return (
-    <main className={`ps ${foto ? 'com-foto' : ''}`} style={{ '--ps-cor': cor, '--ps-cor2': cor2 }}>
-      {foto
+    <main className={`ps ${retrato ? 'com-retrato' : foto ? 'com-foto' : ''}`} style={{ '--ps-cor': cor, '--ps-cor2': cor2 }}>
+      {foto && !retrato
         ? <div className="ps-foto" style={{ backgroundImage: `url(${foto})` }} aria-hidden="true" />
         : <img src="/brand/emblema-verde.png" alt="" className="ps-marcadagua" aria-hidden="true" />}
 
       <div className="ps-conteudo">
         <header className={`ps-topo ${entrou ? 'on' : ''}`}>
-          <img src={logo} alt={`${nome} · Facilitadora de negócios`} className="ps-logo" />
-          {cfg.presite_subtitulo && <p className="ps-sub">{cfg.presite_subtitulo}</p>}
-          <div className="ps-pergunta"><span />Do que você precisa hoje?<span /></div>
+          {retrato && <img src={retrato} alt={nome} className="ps-retrato" />}
+          <div className="ps-marca">
+            <img src={logo} alt={`${nome} · Facilitadora de negócios`} className="ps-logo" />
+            {cfg.presite_subtitulo && <p className="ps-sub">{cfg.presite_subtitulo}</p>}
+          </div>
         </header>
+        <div className="ps-pergunta"><span />Do que você precisa hoje?<span /></div>
 
         <nav className="ps-lista" aria-label="Serviços">
           {botoes.map((b, i) => {
@@ -100,7 +104,7 @@ export default function PreSiteClient({ cfg, botoes }) {
         .ps-topo.on { opacity: 1; transform: none; }
         .ps-logo { width: min(84%, 340px); height: auto; margin: 0 auto; }
         .ps-sub { margin: 16px auto 0; max-width: 360px; font-size: 15px; line-height: 1.55; color: #5C5D4C; }
-        .ps-pergunta { margin: 26px auto 4px; display: flex; align-items: center; gap: 12px; justify-content: center; font-size: 11.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--ps-cor2); }
+        .ps-pergunta { margin: 6px auto 14px; width: 100%; white-space: nowrap; display: flex; align-items: center; gap: 12px; justify-content: center; font-size: 11.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--ps-cor2); }
         .ps-pergunta span { flex: 0 1 46px; height: 1px; background: color-mix(in srgb, var(--ps-cor2) 60%, transparent); }
         .ps-lista { display: grid; grid-template-columns: 1fr; gap: 10px; }
         .ps-botao { display: flex; align-items: center; gap: 14px; padding: 13px 15px; border-radius: 16px; text-decoration: none; color: #3E4130;
@@ -118,7 +122,21 @@ export default function PreSiteClient({ cfg, botoes }) {
         .ps-redes { display: flex; justify-content: center; gap: 12px; margin-bottom: 12px; }
         .ps-redes a { width: 44px; height: 44px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: var(--ps-cor); border: 1px solid #CFC6B5; background: #F8F3EB; }
         .ps-legal { font-size: 11.5px; color: #8E8A76; letter-spacing: .04em; }
+        /* com retrato: ela à direita, logo e frase à esquerda por cima do creme */
+        .com-retrato .ps-topo { position: relative; display: flex; flex-direction: column; justify-content: flex-end; min-height: min(118vw, 560px); padding: 18px 0 18px; text-align: left; }
+        .ps-retrato { position: absolute; right: -10px; top: 10px; height: calc(100% - 4px); max-width: 74%; object-fit: contain; object-position: right bottom;
+          -webkit-mask-image: linear-gradient(180deg, #000 62%, transparent 99%); mask-image: linear-gradient(180deg, #000 62%, transparent 99%); }
+        .com-retrato .ps-marca { position: relative; z-index: 1; max-width: 58%; }
+        .com-retrato .ps-logo { width: 100%; margin: 0; filter: drop-shadow(0 2px 10px rgba(240,232,221,.9)); }
+        .com-retrato .ps-sub { margin: 10px 0 0; max-width: 230px; font-size: 13.5px; text-shadow: 0 0 12px #F0E8DD, 0 0 4px #F0E8DD; }
+        .com-retrato .ps-marcadagua { right: auto; left: -28vw; opacity: .07; }
         @media (min-width: 900px) {
+          .com-retrato .ps-topo { min-height: 520px; justify-content: center; padding: 30px 0; }
+          .com-retrato .ps-marca { max-width: 50%; }
+          .com-retrato .ps-logo { width: 420px; max-width: 100%; }
+          .com-retrato .ps-sub { max-width: 380px; font-size: 16px; }
+          .ps-retrato { right: 0; max-width: 46%; height: 100%; top: 0; }
+          .com-retrato .ps-marcadagua { left: -6vw; }
           .ps-conteudo { max-width: 920px; }
           .ps-topo { padding-top: 9vh; }
           .ps-logo { width: 380px; }
