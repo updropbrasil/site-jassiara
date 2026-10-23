@@ -31,32 +31,25 @@ const NOVA = {
   botao_tipo: 'nenhum', botao_texto: '', botao_url: '', botao_whats_msg: 'Oi, Jassiara! Vim pelo Instagram e quero saber mais.', imovel_codigo: '',
   ia_assume: false, ia_horas: 24, uma_vez: true, atraso: true, ativo: true,
 };
-const CAMPOS_IA = [
-  { k: 'secretaria_quem', l: 'Quem é a secretária', ex: 'Sou a assistente da Jassiara…' },
-  { k: 'secretaria_servicos', l: 'Serviços que você oferece (e valores médios, se quiser)', ex: 'Temporada a partir de…', alto: true },
-  { k: 'secretaria_tom', l: 'Jeito de falar', ex: 'Simpática, frases curtas…' },
-  { k: 'secretaria_nunca', l: 'O que ela NUNCA faz', ex: 'Nunca fechar preço sem mim…' },
-  { k: 'secretaria_passar', l: 'Quando ela passa a conversa para você', ex: 'Quando quiser visitar…' },
-];
 
 // ── Tours guiados ("Como funciona") ──
 const TOUR_LISTA = [
   { titulo: 'Bem-vinda às Automações 👋', texto: 'Aqui você cria respostas automáticas no Instagram e no WhatsApp.\n\nMas só para quem usar uma PALAVRA que você escolher, como “QUERO” ou “PREÇO”. O resto do seu atendimento continua sendo seu.' },
   { alvo: '[data-tour="geral"]', titulo: 'Chave geral', texto: 'Liga ou pausa todas as automações de uma vez. Pausado, nada dispara — nem os gatilhos ligados.' },
-  { alvo: '[data-tour="regra"]', titulo: 'As duas regras de ouro', texto: '1. Só responde quem usar a palavra do gatilho. Quem te chamar normalmente fala com você.\n\n2. Se você mandar qualquer mensagem numa conversa, a automação e a secretária PARAM na hora naquela conversa. Você entrou, a conversa é sua.' },
+  { alvo: '[data-tour="regra"]', titulo: 'Como cada canal funciona', texto: 'WhatsApp: a secretária IA atende, tira dúvidas, manda os imóveis e te chama quando o cliente quer visitar ou fechar.\n\nInstagram: só responde quem usar a palavra de um gatilho (ou a secretária, se você ligar).\n\nE a regra de ouro: se você mandar qualquer mensagem numa conversa, o robô PARA na hora naquela conversa. Você entrou, a conversa é sua.' },
+  { alvo: '[data-tour="secretaria"]', titulo: 'Secretária IA', texto: 'Liga ou desliga a secretária em cada canal. Ela já conhece seus serviços e os imóveis do site. Quem ajusta o que ela sabe é o suporte.' },
   { alvo: '[data-tour="canais"]', titulo: 'Seus canais', texto: 'Mostra se o Instagram e o WhatsApp estão conectados. Só funciona o que estiver conectado.' },
   { alvo: '[data-tour="criar"]', titulo: 'Criar um gatilho', texto: 'Um gatilho é: QUANDO a pessoa fizer isso → ACONTECE aquilo.\n\nExemplo: quando comentar “QUERO” num post → responde o comentário e manda o link no direct.' },
   { alvo: '[data-tour="cartao"]', titulo: 'Cada gatilho é um cartão', texto: 'Em cima: onde funciona e a frase “Quando…”. No meio: o que ele faz. A chavinha liga e desliga só este gatilho. Embaixo: quantas vezes já disparou, editar, duplicar e excluir.' },
-  { alvo: '[data-tour="aba-atividade"]', titulo: 'Atividade', texto: 'Tudo o que disparou: quem foi, o que escreveu e o que recebeu.\n\nSe a secretária estiver numa conversa, aparece o botão “Assumir conversa” para você entrar.' },
-  { alvo: '[data-tour="aba-secretaria"]', titulo: 'Secretária IA', texto: 'É o que a secretária sabe sobre você: serviços, jeito de falar e limites. Ela só fala quando um gatilho manda, e para assim que você responde.' },
-  { titulo: 'Pronto! Um exemplo para começar', texto: 'Poste um imóvel com a frase “Comenta QUERO que te mando o vídeo”.\n\nLigue o gatilho “Comentou QUERO”. Quem comentar recebe a resposta no comentário e o link no direct — e quem te chamar no WhatsApp cai direto com você.\n\nEste guia fica sempre no botão “Como funciona”.' },
+  { alvo: '[data-tour="aba-atividade"]', titulo: 'Atividade', texto: 'Tudo o que aconteceu: quem foi, o que escreveu e o que recebeu.\n\nQuando a secretária pedir você numa conversa, aparece aqui. E o botão “Assumir conversa” tira o robô daquela conversa.' },
+  { titulo: 'Pronto! Um exemplo para começar', texto: 'Poste um imóvel com a frase “Comenta QUERO que te mando o vídeo”.\n\nLigue o gatilho “Comentou QUERO”. Quem comentar recebe a resposta no comentário e o link no direct. Quem clicar e te chamar no WhatsApp é atendido pela secretária, que te chama na hora certa.\n\nEste guia fica sempre no botão “Como funciona”.' },
 ];
 const TOUR_EDITOR = [
   { titulo: 'Montando um gatilho', texto: 'São 5 passos. À direita (no celular, em cima) aparece a prévia: exatamente o que o cliente vai ver.' },
   { alvo: '[data-tour="p1"]', titulo: '1. Onde', texto: 'Comentário no Instagram, direct do Instagram ou mensagem no WhatsApp.' },
   { alvo: '[data-tour="p2"]', titulo: '2. A palavra', texto: 'Digite e toque em Adicionar. Pode ter mais de uma (QUERO, EU QUERO). Maiúscula e acento não importam.\n\n“Contém” dispara em “quero ver”; “é só a palavra” dispara só em “quero”.' },
   { alvo: '[data-tour="p3"]', titulo: '3. O que acontece', texto: 'Resposta pública no comentário (escreva até 3 versões: o sistema sorteia, fica natural), a mensagem no direct/WhatsApp e, se quiser, um botão: seu WhatsApp, um imóvel do site ou um link.' },
-  { alvo: '[data-tour="p4"]', titulo: '4. Depois disso', texto: 'Escolha se a secretária IA continua a conversa (e por quanto tempo). Se você mandar qualquer mensagem, ela para na hora.\n\n“Uma vez por pessoa” evita mandar de novo para quem já recebeu.' },
+  { alvo: '[data-tour="p4"]', titulo: '4. Depois disso', texto: 'Escolha se a secretária IA continua a conversa no Instagram (e por quanto tempo). Se você mandar qualquer mensagem, ela para na hora.\n\n“Uma vez por pessoa” evita mandar de novo para quem já recebeu.' },
   { alvo: '[data-tour="previa"]', titulo: 'Prévia', texto: 'Confira aqui antes de salvar. Depois é só tocar em “Salvar gatilho” e deixar a chavinha ligada.' },
 ];
 
@@ -168,7 +161,8 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
   const [novaPalavra, setNovaPalavra] = useState('');
   const [tourLista, setTourLista, fecharTourLista] = useTourPrimeiraVez('tour_automacoes_v1');
   const [tourEd, setTourEd, fecharTourEd] = useTourPrimeiraVez('tour_automacoes_editor_v1');
-  const editavelIA = cfg.secretaria_editavel === 'sim';
+  const secWa = (cfg.secretaria_whatsapp || 'sim') === 'sim';
+  const secIg = cfg.secretaria_instagram === 'sim';
 
   const ligadas = cfg.auto_ligadas === 'sim';
   const whats = String(cfg.site_whatsapp || cfg.presite_whatsapp || '').replace(/\D/g, '');
@@ -256,17 +250,18 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
     setRegras(rs => rs.filter(x => x.id !== r.id)); setConfirmaExcluir(null);
   }
 
+  // tira o robô daquela conversa (mesma coisa que ela responder): 12 h sem secretária/gatilho para esse contato
   async function desligarIA(ev) {
     const agora = new Date().toISOString();
+    const ate = new Date(Date.now() + 12 * 3600e3).toISOString();
     const { error } = await supabase.from('automacao_eventos').update({ ia_ate: agora }).eq('id', ev.id);
     if (error) return aviso('Não salvou: ' + error.message);
+    if (ev.contato_id) await supabase.from('conversas').update({ assumida_ate: ate }).eq('canal', ev.canal === 'whatsapp' ? 'whatsapp' : 'instagram').eq('contato_id', ev.contato_id);
     setEventos(es => es.map(x => (x.id === ev.id ? { ...x, ia_ate: agora } : x))); aviso('Pronto, a conversa agora é sua.');
   }
 
-  async function salvarSecretaria() {
-    const pares = {}; CAMPOS_IA.forEach(c => { pares[c.k] = (cfg[c.k] || '').trim(); });
-    setSalvando(true); const ok = await gravarCfg(pares); setSalvando(false);
-    if (ok) aviso('Secretária salva ✓');
+  async function alternarSecretaria(chave, atual) {
+    if (await gravarCfg({ [chave]: atual ? 'nao' : 'sim' })) aviso(atual ? 'Secretária desligada nesse canal.' : 'Secretária ligada nesse canal.');
   }
 
   const statusCanal = (v) => (v === 'conectado' ? { t: 'Conectado', c: 'var(--green)' } : v === 'aguardando' ? { t: 'Aguardando liberação', c: '#E2B86B' } : { t: 'Ainda não conectado', c: 'var(--muted)' });
@@ -451,7 +446,8 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
           <div data-tour="regra" style={{ display: 'flex', gap: 10, padding: 12, borderRadius: 12, background: 'rgba(15,17,10,.35)' }}>
             <ShieldCheck size={20} color="var(--green)" style={{ flex: 'none', marginTop: 1 }} />
             <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--sand)' }}>
-              <strong style={{ color: 'var(--cream-2)' }}>Nada de robô no seu atendimento.</strong> Só responde automaticamente quem usar uma palavra de gatilho. Quem te chamar normalmente, no direct ou no WhatsApp, fala com você.
+              <div><strong style={{ color: 'var(--cream-2)' }}>WhatsApp:</strong> a secretária atende, tira dúvidas, manda os imóveis e te chama quando o cliente quer visitar ou fechar.</div>
+              <div style={{ marginTop: 6 }}><strong style={{ color: 'var(--cream-2)' }}>Instagram:</strong> só responde quem usar a palavra de um gatilho{secIg ? ', e a secretária atende o direct' : ''}. O resto é com você.</div>
               <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginTop: 8 }}><Lock size={14} color="var(--accent)" style={{ flex: 'none', marginTop: 3 }} /><span><strong style={{ color: 'var(--cream-2)' }}>Você entrou, o robô sai.</strong> Se você mandar qualquer mensagem numa conversa, a automação e a secretária param na hora naquela conversa.</span></div>
             </div>
           </div>
@@ -462,11 +458,20 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
               </span>
             ))}
           </div>
+          <div data-tour="secretaria" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 14, borderRadius: 12, border: '1px solid rgba(168,192,143,.25)', background: 'rgba(168,192,143,.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Bot size={18} color="var(--green)" /><strong style={{ fontSize: 14.5 }}>Secretária IA</strong></div>
+            <Linha titulo="Atende no WhatsApp" ajuda="Responde todo mundo que chamar, direciona e te chama.">
+              <Chave ligado={secWa} onClick={() => alternarSecretaria('secretaria_whatsapp', secWa)} rotuloAria="Secretária no WhatsApp" />
+            </Linha>
+            <Linha titulo="Atende o direct do Instagram" ajuda="Desligado: no direct só respondem os gatilhos.">
+              <Chave ligado={secIg} onClick={() => alternarSecretaria('secretaria_instagram', secIg)} rotuloAria="Secretária no direct do Instagram" />
+            </Linha>
+          </div>
         </section>
 
         {/* Abas */}
         <div style={{ display: 'flex', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 12, padding: 4 }}>
-          {[['gatilhos', 'Gatilhos', Zap], ['atividade', 'Atividade', Activity], ['secretaria', 'Secretária IA', Bot]].map(([k, l, I]) => (
+          {[['gatilhos', 'Gatilhos', Zap], ['atividade', 'Atividade', Activity]].map(([k, l, I]) => (
             <button key={k} data-tour={'aba-' + k} onClick={() => setAba(k)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 6px', borderRadius: 9, border: 0, fontSize: 13.5, fontWeight: aba === k ? 800 : 500, background: aba === k ? 'var(--accent)' : 'transparent', color: aba === k ? '#22251A' : 'var(--sand)' }}>
               <I size={15} />{l}{k === 'atividade' && iaAtiva.length > 0 && <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 999, background: 'var(--green)', color: '#1d2016' }}>{iaAtiva.length}</span>}
             </button>
@@ -543,31 +548,6 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
           </>
         )}
 
-        {aba === 'secretaria' && (
-          <section style={{ ...cartao, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <Bot size={22} color="var(--green)" style={{ flex: 'none' }} />
-              <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--sand)' }}>
-                A secretária <strong style={{ color: 'var(--cream-2)' }}>só fala quando um gatilho manda</strong> (opção “Secretária IA continua a conversa”) e <strong style={{ color: 'var(--cream-2)' }}>para na hora em que você responde</strong>. Ela já conhece seus imóveis do site. Abaixo está tudo o que ela sabe sobre você.
-              </div>
-            </div>
-            {!editavelIA && (
-              <div style={{ display: 'flex', gap: 8, padding: 12, borderRadius: 12, background: 'rgba(201,162,126,.08)', border: '1px solid rgba(201,162,126,.3)', fontSize: 12.5, lineHeight: 1.5, color: 'var(--sand)' }}>
-                <Lock size={15} color="var(--accent)" style={{ flex: 'none', marginTop: 2 }} />
-                <span>Para a secretária não sair do tom, quem ajusta estes textos é o suporte que montou o seu sistema. Quer mudar algo? É só pedir.</span>
-              </div>
-            )}
-            {CAMPOS_IA.map(c => (
-              <label key={c.k} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <span style={rotulo}>{c.l}</span>
-                {editavelIA
-                  ? <textarea value={cfg[c.k] || ''} onChange={e => setCfg(x => ({ ...x, [c.k]: e.target.value }))} rows={c.alto ? 5 : 3} placeholder={c.ex} style={{ ...caixa, resize: 'vertical' }} />
-                  : <div style={{ ...caixa, background: 'rgba(31,34,24,.6)', whiteSpace: 'pre-wrap', lineHeight: 1.5, color: 'var(--sand)' }}>{cfg[c.k] || '—'}</div>}
-              </label>
-            ))}
-            {editavelIA && <button onClick={salvarSecretaria} disabled={salvando} style={{ padding: 14, borderRadius: 12, border: 0, background: 'var(--accent)', color: '#22251A', fontWeight: 800, fontSize: 15 }}>{salvando ? 'Salvando…' : 'Salvar secretária'}</button>}
-          </section>
-        )}
       </div>
       <TourGuiado aberto={tourLista} onFechar={fecharTourLista} passos={TOUR_LISTA} />
       {msg && <div role="status" style={{ position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 7, background: '#F0E8DD', color: '#22251A', padding: '10px 16px', borderRadius: 999, fontSize: 13.5, fontWeight: 700, boxShadow: '0 10px 30px rgba(0,0,0,.4)', maxWidth: 'calc(100vw - 32px)', textAlign: 'center' }}>{msg}</div>}
