@@ -2,9 +2,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '../../../lib/supabase-browser';
+import TourGuiado, { useTourPrimeiraVez } from '../TourGuiado';
 import {
   Instagram, MessageCircle, Send, Bot, Zap, Plus, Copy, Trash2, Pencil, ShieldCheck, Clock, Link2, House, X,
-  ChevronLeft, Sparkles, MessagesSquare, Check, Activity, Power
+  ChevronLeft, Sparkles, MessagesSquare, Check, Activity, Power, CircleHelp, Lock
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -36,6 +37,27 @@ const CAMPOS_IA = [
   { k: 'secretaria_tom', l: 'Jeito de falar', ex: 'Simpática, frases curtas…' },
   { k: 'secretaria_nunca', l: 'O que ela NUNCA faz', ex: 'Nunca fechar preço sem mim…' },
   { k: 'secretaria_passar', l: 'Quando ela passa a conversa para você', ex: 'Quando quiser visitar…' },
+];
+
+// ── Tours guiados ("Como funciona") ──
+const TOUR_LISTA = [
+  { titulo: 'Bem-vinda às Automações 👋', texto: 'Aqui você cria respostas automáticas no Instagram e no WhatsApp.\n\nMas só para quem usar uma PALAVRA que você escolher, como “QUERO” ou “PREÇO”. O resto do seu atendimento continua sendo seu.' },
+  { alvo: '[data-tour="geral"]', titulo: 'Chave geral', texto: 'Liga ou pausa todas as automações de uma vez. Pausado, nada dispara — nem os gatilhos ligados.' },
+  { alvo: '[data-tour="regra"]', titulo: 'As duas regras de ouro', texto: '1. Só responde quem usar a palavra do gatilho. Quem te chamar normalmente fala com você.\n\n2. Se você mandar qualquer mensagem numa conversa, a automação e a secretária PARAM na hora naquela conversa. Você entrou, a conversa é sua.' },
+  { alvo: '[data-tour="canais"]', titulo: 'Seus canais', texto: 'Mostra se o Instagram e o WhatsApp estão conectados. Só funciona o que estiver conectado.' },
+  { alvo: '[data-tour="criar"]', titulo: 'Criar um gatilho', texto: 'Um gatilho é: QUANDO a pessoa fizer isso → ACONTECE aquilo.\n\nExemplo: quando comentar “QUERO” num post → responde o comentário e manda o link no direct.' },
+  { alvo: '[data-tour="cartao"]', titulo: 'Cada gatilho é um cartão', texto: 'Em cima: onde funciona e a frase “Quando…”. No meio: o que ele faz. A chavinha liga e desliga só este gatilho. Embaixo: quantas vezes já disparou, editar, duplicar e excluir.' },
+  { alvo: '[data-tour="aba-atividade"]', titulo: 'Atividade', texto: 'Tudo o que disparou: quem foi, o que escreveu e o que recebeu.\n\nSe a secretária estiver numa conversa, aparece o botão “Assumir conversa” para você entrar.' },
+  { alvo: '[data-tour="aba-secretaria"]', titulo: 'Secretária IA', texto: 'É o que a secretária sabe sobre você: serviços, jeito de falar e limites. Ela só fala quando um gatilho manda, e para assim que você responde.' },
+  { titulo: 'Pronto! Um exemplo para começar', texto: 'Poste um imóvel com a frase “Comenta QUERO que te mando o vídeo”.\n\nLigue o gatilho “Comentou QUERO”. Quem comentar recebe a resposta no comentário e o link no direct — e quem te chamar no WhatsApp cai direto com você.\n\nEste guia fica sempre no botão “Como funciona”.' },
+];
+const TOUR_EDITOR = [
+  { titulo: 'Montando um gatilho', texto: 'São 5 passos. À direita (no celular, em cima) aparece a prévia: exatamente o que o cliente vai ver.' },
+  { alvo: '[data-tour="p1"]', titulo: '1. Onde', texto: 'Comentário no Instagram, direct do Instagram ou mensagem no WhatsApp.' },
+  { alvo: '[data-tour="p2"]', titulo: '2. A palavra', texto: 'Digite e toque em Adicionar. Pode ter mais de uma (QUERO, EU QUERO). Maiúscula e acento não importam.\n\n“Contém” dispara em “quero ver”; “é só a palavra” dispara só em “quero”.' },
+  { alvo: '[data-tour="p3"]', titulo: '3. O que acontece', texto: 'Resposta pública no comentário (escreva até 3 versões: o sistema sorteia, fica natural), a mensagem no direct/WhatsApp e, se quiser, um botão: seu WhatsApp, um imóvel do site ou um link.' },
+  { alvo: '[data-tour="p4"]', titulo: '4. Depois disso', texto: 'Escolha se a secretária IA continua a conversa (e por quanto tempo). Se você mandar qualquer mensagem, ela para na hora.\n\n“Uma vez por pessoa” evita mandar de novo para quem já recebeu.' },
+  { alvo: '[data-tour="previa"]', titulo: 'Prévia', texto: 'Confira aqui antes de salvar. Depois é só tocar em “Salvar gatilho” e deixar a chavinha ligada.' },
 ];
 
 const caixa = { width: '100%', boxSizing: 'border-box', background: '#1F2218', border: '1px solid rgba(240,232,221,.15)', borderRadius: 10, padding: '12px 13px', color: 'var(--cream)', fontSize: 15, fontFamily: 'inherit' };
@@ -86,7 +108,7 @@ function Linha({ titulo, ajuda, children }) {
 
 function Passo({ n, titulo, children }) {
   return (
-    <section style={{ ...cartao, display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <section data-tour={'p' + n} style={{ ...cartao, display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ width: 26, height: 26, borderRadius: 999, background: 'rgba(201,162,126,.16)', color: 'var(--accent)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 800 }}>{n}</span>
         <strong style={{ fontSize: 15.5, color: 'var(--cream-2)' }}>{titulo}</strong>
@@ -144,6 +166,9 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
   const [msg, setMsg] = useState('');
   const [confirmaExcluir, setConfirmaExcluir] = useState(null);
   const [novaPalavra, setNovaPalavra] = useState('');
+  const [tourLista, setTourLista, fecharTourLista] = useTourPrimeiraVez('tour_automacoes_v1');
+  const [tourEd, setTourEd, fecharTourEd] = useTourPrimeiraVez('tour_automacoes_editor_v1');
+  const editavelIA = cfg.secretaria_editavel === 'sim';
 
   const ligadas = cfg.auto_ligadas === 'sim';
   const whats = String(cfg.site_whatsapp || cfg.presite_whatsapp || '').replace(/\D/g, '');
@@ -257,6 +282,7 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
         <header style={{ position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg)', padding: '14px 16px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={() => setEd(null)} aria-label="Voltar" style={{ width: 40, height: 40, borderRadius: 999, border: '1px solid rgba(240,232,221,.15)', background: 'transparent', color: 'var(--sand)', display: 'grid', placeItems: 'center' }}><ChevronLeft size={20} /></button>
           <strong style={{ fontSize: 17, flex: 1 }}>{ed.id ? 'Editar gatilho' : 'Novo gatilho'}</strong>
+          <button onClick={() => setTourEd(true)} style={btnAjuda}><CircleHelp size={16} /> <span className="so-pc">Como funciona</span></button>
           <span style={{ fontSize: 13, color: 'var(--muted)' }}>Ligado</span>
           <Chave ligado={ed.ativo} onClick={() => set({ ativo: !ed.ativo })} rotuloAria="Gatilho ligado" />
         </header>
@@ -364,7 +390,7 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
             </Passo>
 
             <Passo n="4" titulo="Depois disso">
-              <Linha titulo="Secretária IA continua a conversa" ajuda="Só nesta conversa, só depois do gatilho. Desligado = você continua.">
+              <Linha titulo="Secretária IA continua a conversa" ajuda="Só nesta conversa, só depois do gatilho. Se você mandar qualquer mensagem, ela para na hora.">
                 <Chave ligado={ed.ia_assume} onClick={() => set({ ia_assume: !ed.ia_assume })} rotuloAria="Secretária IA" />
               </Linha>
               {ed.ia_assume && (
@@ -386,7 +412,7 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
             </Passo>
           </div>
 
-          <div className="auto-previa">
+          <div className="auto-previa" data-tour="previa">
             <Previa r={ed} linkBotao={linkB} />
           </div>
         </div>
@@ -396,6 +422,7 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
           <button onClick={salvar} disabled={salvando} style={{ flex: '0 1 320px', padding: 14, borderRadius: 12, border: 0, background: 'var(--accent)', color: '#22251A', fontWeight: 800, fontSize: 15 }}>{salvando ? 'Salvando…' : 'Salvar gatilho'}</button>
         </div>
         {msg && <div role="status" style={{ position: 'fixed', left: '50%', bottom: 92, transform: 'translateX(-50%)', zIndex: 7, background: '#F0E8DD', color: '#22251A', padding: '10px 16px', borderRadius: 999, fontSize: 13.5, fontWeight: 700, boxShadow: '0 10px 30px rgba(0,0,0,.4)', maxWidth: 'calc(100vw - 32px)', textAlign: 'center' }}>{msg}</div>}
+        <TourGuiado aberto={tourEd} onFechar={fecharTourEd} passos={TOUR_EDITOR} />
         <style>{`.auto-grade{display:grid;gap:14px;grid-template-columns:1fr}.auto-previa{order:-1}@media(min-width:900px){.auto-grade{grid-template-columns:minmax(0,1fr) 340px;align-items:start}.auto-previa{order:0;position:sticky;top:84px}}`}</style>
       </main>
     );
@@ -407,13 +434,13 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
       <header style={{ position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg)', padding: '14px 16px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
         <Link href="/admin" aria-label="Voltar ao painel" style={{ width: 40, height: 40, borderRadius: 999, border: '1px solid rgba(240,232,221,.15)', color: 'var(--sand)', display: 'grid', placeItems: 'center' }}><ChevronLeft size={20} /></Link>
         <strong style={{ fontSize: 17, flex: 1 }}>Automações</strong>
-        <Link href="/admin" aria-label="Painel" style={{ color: 'var(--muted)', display: 'grid', placeItems: 'center' }}><House size={18} /></Link>
+        <button onClick={() => { setAba('gatilhos'); setTourLista(true); }} style={btnAjuda}><CircleHelp size={16} /> Como funciona</button>
       </header>
 
       <div style={{ maxWidth: 860, margin: '0 auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* Interruptor geral + regra de ouro */}
         <section style={{ ...cartao, background: 'linear-gradient(160deg, #343826, #262919)', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div data-tour="geral" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ width: 44, height: 44, borderRadius: 12, background: ligadas ? 'rgba(168,192,143,.18)' : 'rgba(240,232,221,.08)', color: ligadas ? 'var(--green)' : 'var(--muted)', display: 'grid', placeItems: 'center', flex: 'none' }}><Power size={22} /></span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 16, fontWeight: 800 }}>{ligadas ? 'Automações ligadas' : 'Automações pausadas'}</div>
@@ -421,13 +448,14 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
             </div>
             <Chave ligado={ligadas} onClick={alternarGeral} rotuloAria="Ligar automações" />
           </div>
-          <div style={{ display: 'flex', gap: 10, padding: 12, borderRadius: 12, background: 'rgba(15,17,10,.35)' }}>
+          <div data-tour="regra" style={{ display: 'flex', gap: 10, padding: 12, borderRadius: 12, background: 'rgba(15,17,10,.35)' }}>
             <ShieldCheck size={20} color="var(--green)" style={{ flex: 'none', marginTop: 1 }} />
             <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--sand)' }}>
               <strong style={{ color: 'var(--cream-2)' }}>Nada de robô no seu atendimento.</strong> Só responde automaticamente quem usar uma palavra de gatilho. Quem te chamar normalmente, no direct ou no WhatsApp, fala com você.
+              <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginTop: 8 }}><Lock size={14} color="var(--accent)" style={{ flex: 'none', marginTop: 3 }} /><span><strong style={{ color: 'var(--cream-2)' }}>Você entrou, o robô sai.</strong> Se você mandar qualquer mensagem numa conversa, a automação e a secretária param na hora naquela conversa.</span></div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div data-tour="canais" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {[['Instagram', Instagram, sIg], ['WhatsApp', MessageCircle, sWa]].map(([n, I, s]) => (
               <span key={n} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 999, border: '1px solid var(--line)', fontSize: 12.5, color: 'var(--sand)' }}>
                 <I size={14} /> {n}: <strong style={{ color: s.c }}>{s.t}</strong>
@@ -439,7 +467,7 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
         {/* Abas */}
         <div style={{ display: 'flex', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 12, padding: 4 }}>
           {[['gatilhos', 'Gatilhos', Zap], ['atividade', 'Atividade', Activity], ['secretaria', 'Secretária IA', Bot]].map(([k, l, I]) => (
-            <button key={k} onClick={() => setAba(k)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 6px', borderRadius: 9, border: 0, fontSize: 13.5, fontWeight: aba === k ? 800 : 500, background: aba === k ? 'var(--accent)' : 'transparent', color: aba === k ? '#22251A' : 'var(--sand)' }}>
+            <button key={k} data-tour={'aba-' + k} onClick={() => setAba(k)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 6px', borderRadius: 9, border: 0, fontSize: 13.5, fontWeight: aba === k ? 800 : 500, background: aba === k ? 'var(--accent)' : 'transparent', color: aba === k ? '#22251A' : 'var(--sand)' }}>
               <I size={15} />{l}{k === 'atividade' && iaAtiva.length > 0 && <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 999, background: 'var(--green)', color: '#1d2016' }}>{iaAtiva.length}</span>}
             </button>
           ))}
@@ -447,14 +475,14 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
 
         {aba === 'gatilhos' && (
           <>
-            <button onClick={() => abrir(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 15, borderRadius: 14, border: '1.5px dashed rgba(201,162,126,.55)', background: 'rgba(201,162,126,.06)', color: 'var(--accent)', fontSize: 15, fontWeight: 800 }}>
+            <button data-tour="criar" onClick={() => abrir(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 15, borderRadius: 14, border: '1.5px dashed rgba(201,162,126,.55)', background: 'rgba(201,162,126,.06)', color: 'var(--accent)', fontSize: 15, fontWeight: 800 }}>
               <Plus size={18} /> Criar gatilho
             </button>
             {regras.length === 0 && <div style={{ ...cartao, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>Nenhum gatilho ainda.</div>}
-            {regras.map(r => {
+            {regras.map((r, idx) => {
               const C = CANAIS[r.canal] || CANAIS.ig_comentario;
               return (
-                <article key={r.id} style={{ ...cartao, display: 'flex', flexDirection: 'column', gap: 12, opacity: r.ativo ? 1 : 0.72 }}>
+                <article key={r.id} data-tour={idx === 0 ? 'cartao' : undefined} style={{ ...cartao, display: 'flex', flexDirection: 'column', gap: 12, opacity: r.ativo ? 1 : 0.72 }}>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                     <span style={{ width: 42, height: 42, borderRadius: 11, background: C.cor + '22', color: C.cor, display: 'grid', placeItems: 'center', flex: 'none' }}><C.Icone size={20} /></span>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -520,22 +548,32 @@ export default function AutomacoesClient({ regrasIniciais, eventosIniciais, cfgI
             <div style={{ display: 'flex', gap: 10 }}>
               <Bot size={22} color="var(--green)" style={{ flex: 'none' }} />
               <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--sand)' }}>
-                A secretária <strong style={{ color: 'var(--cream-2)' }}>só fala quando um gatilho manda</strong> (opção “Secretária IA continua a conversa”). Ela já conhece seus imóveis do site. Aqui você ensina o resto.
+                A secretária <strong style={{ color: 'var(--cream-2)' }}>só fala quando um gatilho manda</strong> (opção “Secretária IA continua a conversa”) e <strong style={{ color: 'var(--cream-2)' }}>para na hora em que você responde</strong>. Ela já conhece seus imóveis do site. Abaixo está tudo o que ela sabe sobre você.
               </div>
             </div>
+            {!editavelIA && (
+              <div style={{ display: 'flex', gap: 8, padding: 12, borderRadius: 12, background: 'rgba(201,162,126,.08)', border: '1px solid rgba(201,162,126,.3)', fontSize: 12.5, lineHeight: 1.5, color: 'var(--sand)' }}>
+                <Lock size={15} color="var(--accent)" style={{ flex: 'none', marginTop: 2 }} />
+                <span>Para a secretária não sair do tom, quem ajusta estes textos é o suporte que montou o seu sistema. Quer mudar algo? É só pedir.</span>
+              </div>
+            )}
             {CAMPOS_IA.map(c => (
               <label key={c.k} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <span style={rotulo}>{c.l}</span>
-                <textarea value={cfg[c.k] || ''} onChange={e => setCfg(x => ({ ...x, [c.k]: e.target.value }))} rows={c.alto ? 5 : 3} placeholder={c.ex} style={{ ...caixa, resize: 'vertical' }} />
+                {editavelIA
+                  ? <textarea value={cfg[c.k] || ''} onChange={e => setCfg(x => ({ ...x, [c.k]: e.target.value }))} rows={c.alto ? 5 : 3} placeholder={c.ex} style={{ ...caixa, resize: 'vertical' }} />
+                  : <div style={{ ...caixa, background: 'rgba(31,34,24,.6)', whiteSpace: 'pre-wrap', lineHeight: 1.5, color: 'var(--sand)' }}>{cfg[c.k] || '—'}</div>}
               </label>
             ))}
-            <button onClick={salvarSecretaria} disabled={salvando} style={{ padding: 14, borderRadius: 12, border: 0, background: 'var(--accent)', color: '#22251A', fontWeight: 800, fontSize: 15 }}>{salvando ? 'Salvando…' : 'Salvar secretária'}</button>
+            {editavelIA && <button onClick={salvarSecretaria} disabled={salvando} style={{ padding: 14, borderRadius: 12, border: 0, background: 'var(--accent)', color: '#22251A', fontWeight: 800, fontSize: 15 }}>{salvando ? 'Salvando…' : 'Salvar secretária'}</button>}
           </section>
         )}
       </div>
+      <TourGuiado aberto={tourLista} onFechar={fecharTourLista} passos={TOUR_LISTA} />
       {msg && <div role="status" style={{ position: 'fixed', left: '50%', bottom: 24, transform: 'translateX(-50%)', zIndex: 7, background: '#F0E8DD', color: '#22251A', padding: '10px 16px', borderRadius: 999, fontSize: 13.5, fontWeight: 700, boxShadow: '0 10px 30px rgba(0,0,0,.4)', maxWidth: 'calc(100vw - 32px)', textAlign: 'center' }}>{msg}</div>}
     </main>
   );
 }
 
+const btnAjuda = { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 999, border: '1px solid rgba(201,162,126,.45)', background: 'rgba(201,162,126,.08)', color: 'var(--accent)', fontSize: 13, fontWeight: 700, cursor: 'pointer' };
 const btnPeq = { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 9, border: '1px solid var(--line)', background: 'transparent', color: 'var(--sand)', fontSize: 12.5, fontWeight: 600 };
