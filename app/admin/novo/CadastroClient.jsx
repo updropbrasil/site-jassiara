@@ -21,7 +21,7 @@ const STEPS = ['Tipo', 'Localização', 'Características', 'Valores', 'Vídeo e
 // imóveis da parceria: os que vieram do outro site têm origem_site diferente deste
 const ORIGEM_PROPRIA = 'jassiara';
 
-export default function CadastroClient({ parceiros: parceirosIniciais, imovel, fotosIniciais }) {
+export default function CadastroClient({ parceiros: parceirosIniciais, imovel, fotosIniciais, temporada, acesso, proprietarios = [] }) {
   const router = useRouter();
   const supabase = createClient();
   const editando = !!imovel;
@@ -110,6 +110,22 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
   });
 
   const set = (patch) => setForm(f => ({ ...f, ...patch }));
+
+  // Temporada: o mesmo imóvel pode estar à venda, para aluguel anual e na temporada ao mesmo tempo.
+  // Estes campos vão para as tabelas temporada_imoveis / temporada_acessos (sistema de temporada).
+  const [temp, setTemp] = useState(() => ({
+    ativo: temporada ? !!temporada.ativo : imovel?.finalidade === 'temporada',
+    diaria: temporada?.diaria_cents ? String(temporada.diaria_cents / 100) : '',
+    limpeza: temporada?.limpeza_cents ? String(temporada.limpeza_cents / 100) : '',
+    capacidade: temporada?.capacidade || 2,
+    minimo: temporada?.minimo_noites || 1,
+    distancia: temporada?.distancia_praia_m ?? '',
+    proprietario_id: temporada?.proprietario_id || '',
+    regras: Array.isArray(temporada?.regras) ? temporada.regras.join('\n') : '',
+    wifi_rede: acesso?.wifi_rede || '', wifi_senha: acesso?.wifi_senha || '',
+    senha_porta: acesso?.senha_porta || '', diretrizes: acesso?.diretrizes || '',
+  }));
+  const setT = (patch) => setTemp(t => ({ ...t, ...patch }));
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1000px)');
     const on = () => setWide(mq.matches);
@@ -259,6 +275,34 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
         const { data, error } = await supabase.from('imoveis').insert(payload).select('id').single();
         if (error) throw error;
         imovelId = data.id;
+      }
+
+      // Temporada: grava (ou tira do ar) os dados do sistema de temporada.
+      const naTemporada = temp.ativo || form.finalidade === 'temporada';
+      if (naTemporada || temporada) {
+        const diariaCents = form.finalidade === 'temporada' ? parsePreco(form.preco) : parsePreco(temp.diaria);
+        const { error: tErr } = await supabase.from('temporada_imoveis').upsert({
+          imovel_id: imovelId,
+          ativo: naTemporada,
+          capacidade: Math.max(1, Number(temp.capacidade) || 1),
+          diaria_cents: diariaCents || 0,
+          limpeza_cents: parsePreco(temp.limpeza) || 0,
+          minimo_noites: Math.max(1, Number(temp.minimo) || 1),
+          distancia_praia_m: String(temp.distancia).replace(/\D/g, '') ? Number(String(temp.distancia).replace(/\D/g, '')) : null,
+          proprietario_id: temp.proprietario_id || null,
+          regras: String(temp.regras || '').split('\n').map(r => r.trim()).filter(Boolean),
+          atualizado_em: new Date().toISOString(),
+        });
+        if (tErr) throw tErr;
+        if (acesso || temp.wifi_rede || temp.wifi_senha || temp.senha_porta || temp.diretrizes) {
+          const { error: aErr } = await supabase.from('temporada_acessos').upsert({
+            imovel_id: imovelId,
+            wifi_rede: temp.wifi_rede.trim() || null, wifi_senha: temp.wifi_senha.trim() || null,
+            senha_porta: temp.senha_porta.trim() || null, diretrizes: temp.diretrizes.trim() || null,
+            atualizado_em: new Date().toISOString(),
+          });
+          if (aErr) throw aErr;
+        }
       }
 
       // upload do vídeo (se escolhido): direto pro Cloudflare R2 (sem limite)
@@ -571,6 +615,66 @@ export default function CadastroClient({ parceiros: parceirosIniciais, imovel, f
                   <input value={form.contato_interno} onChange={e => set({ contato_interno: e.target.value })} placeholder="Ex.: João (dono) — 83 99999-0000" style={inp} />
                   <Hint>🔒 Só interno — não aparece no site nem vai para os portais.</Hint>
                 </Field>
+              </div>
+
+              {/* Temporada: campos extras do sistema de temporada */}
+              <div style={{ marginTop: 22, padding: 16, border: '1px solid rgba(201,162,126,.4)', borderRadius: 14 }}>
+                {isTemporada ? (
+                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Dados da temporada</div>
+                ) : (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', minHeight: 44 }}>
+                    <input type="checkbox" checked={temp.ativo} onChange={e => setT({ ativo: e.target.checked })} style={{ width: 20, height: 20 }} />
+                    Também disponível para temporada
+                  </label>
+                )}
+                {!isTemporada && <Hint>O imóvel continua {form.finalidade === 'venda' ? 'à venda' : 'para aluguel'} no site e também aparece no sistema de temporada.</Hint>}
+                {(isTemporada || temp.ativo) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      {!isTemporada && (
+                        <Field label="Diária (R$)">
+                          <input value={maskThousands(temp.diaria)} onChange={e => setT({ diaria: onlyDigits(e.target.value) })} placeholder="0" inputMode="numeric" style={inp} />
+                        </Field>
+                      )}
+                      <Field label="Taxa de limpeza (R$)">
+                        <input value={maskThousands(temp.limpeza)} onChange={e => setT({ limpeza: onlyDigits(e.target.value) })} placeholder="0" inputMode="numeric" style={inp} />
+                      </Field>
+                      <Field label="Capacidade (pessoas)">
+                        <input value={temp.capacidade} onChange={e => setT({ capacidade: onlyDigits(e.target.value) })} inputMode="numeric" style={inp} />
+                      </Field>
+                      <Field label="Mínimo de noites">
+                        <input value={temp.minimo} onChange={e => setT({ minimo: onlyDigits(e.target.value) })} inputMode="numeric" style={inp} />
+                      </Field>
+                      <Field label="Distância da praia (m)">
+                        <input value={temp.distancia} onChange={e => setT({ distancia: onlyDigits(e.target.value) })} placeholder="Ex.: 200" inputMode="numeric" style={inp} />
+                      </Field>
+                      <Field label="Proprietário (temporada)">
+                        <select value={temp.proprietario_id} onChange={e => setT({ proprietario_id: e.target.value })} style={inp}>
+                          <option value="">Sem proprietário ligado</option>
+                          {proprietarios.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                        </select>
+                      </Field>
+                    </div>
+                    <Field label="Regras da casa (uma por linha)">
+                      <textarea value={temp.regras} onChange={e => setT({ regras: e.target.value })} rows={3} placeholder={'Ex.: Não é permitido festas\nSilêncio após as 22h'} style={{ ...inp, height: 'auto', padding: 12 }} />
+                    </Field>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <Field label="Rede Wi-Fi">
+                        <input value={temp.wifi_rede} onChange={e => setT({ wifi_rede: e.target.value })} autoComplete="off" style={inp} />
+                      </Field>
+                      <Field label="Senha do Wi-Fi">
+                        <input value={temp.wifi_senha} onChange={e => setT({ wifi_senha: e.target.value })} autoComplete="off" style={inp} />
+                      </Field>
+                      <Field label="Senha da porta">
+                        <input value={temp.senha_porta} onChange={e => setT({ senha_porta: e.target.value })} autoComplete="off" style={inp} />
+                      </Field>
+                    </div>
+                    <Field label="Diretrizes deste imóvel">
+                      <textarea value={temp.diretrizes} onChange={e => setT({ diretrizes: e.target.value })} rows={3} placeholder="O que só vale para esta unidade: onde fica a chave, lixo, garagem…" style={{ ...inp, height: 'auto', padding: 12 }} />
+                      <Hint>🔒 Wi-Fi, senha da porta e diretrizes só aparecem para a gestão e a limpeza — nunca no site.</Hint>
+                    </Field>
+                  </div>
+                )}
               </div>
             </>
           )}
